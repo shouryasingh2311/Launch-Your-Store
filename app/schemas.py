@@ -283,3 +283,63 @@ class OrderStatusUpdateRequest(BaseModel):
     status: str = Field(..., pattern=r"^(placed|packed|shipped|delivered|cancelled)$")
     note: str | None = None
 
+
+# ===================== DASHBOARD SCHEMAS =====================
+
+class DashboardSummaryResponse(BaseModel):
+    total_revenue: float
+    total_orders: int
+    average_order_value: float
+    low_stock_count: int
+    pending_orders_count: int
+
+
+class RevenueDataPoint(BaseModel):
+    date: str  # YYYY-MM-DD
+    revenue: float
+    orders_count: int
+
+
+class ActivityItem(BaseModel):
+    id: str
+    type: str  # "order", "status_change", "inventory", "store"
+    title: str
+    description: str
+    timestamp: datetime
+
+
+# ===================== SETTINGS & TEAM SCHEMAS =====================
+
+class StoreProfileUpdate(BaseModel):
+    name: str | None = Field(None, min_length=2, max_length=200)
+    logo_url: str | None = None
+    contact_email: EmailType | None = None
+    phone: str | None = Field(None, max_length=50)
+    address: str | None = None
+    business_type: str | None = Field(None, max_length=100)
+
+
+class StoreThemeUpdate(BaseModel):
+    theme_id: str = Field(..., pattern=r"^(minimal|vibrant|elegant|midnight)$")
+    theme_overrides: dict[str, Any] = Field(default_factory=dict)
+
+
+class StoreContentUpdate(BaseModel):
+    content: dict[str, Any] = Field(..., description="Banners, homepage sections, footer")
+
+
+class TeamMemberCreate(BaseModel):
+    email: EmailType
+    password: str = Field(..., min_length=8, description="Password for staff account")
+
+
+class TeamMemberResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    role: str
+    store_id: int | None
+    created_at: datetime
+
+

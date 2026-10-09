@@ -6,7 +6,14 @@ from sqlalchemy.orm import Session
 from app.auth import TenantContext, get_tenant, require_owner
 from app.database import get_db
 from app.models import Store, User
-from app.schemas import SlugCheckResponse, StoreCreateRequest, StoreResponse
+from app.schemas import (
+    SlugCheckResponse,
+    StoreContentUpdate,
+    StoreCreateRequest,
+    StoreProfileUpdate,
+    StoreResponse,
+    StoreThemeUpdate,
+)
 
 router = APIRouter(tags=["Stores"])
 
@@ -99,3 +106,61 @@ def get_my_store(tenant: TenantContext = Depends(get_tenant)) -> StoreResponse:
             detail="No store associated with this account. Please complete onboarding wizard.",
         )
     return StoreResponse.model_validate(tenant.store)
+
+
+@router.patch("/stores/me", response_model=StoreResponse)
+def update_store_profile(
+    data: StoreProfileUpdate,
+    tenant: TenantContext = Depends(require_owner),
+    db: Session = Depends(get_db),
+) -> StoreResponse:
+    """Update store branding, contact details, and general business profile. Restricted to owner."""
+    if not tenant.store:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found.")
+
+    store = tenant.store
+    update_data = data.model_dump(exclude_unset=True)
+    for key, val in update_data.items():
+        setattr(store, key, val)
+
+    db.commit()
+    db.refresh(store)
+    return StoreResponse.model_validate(store)
+
+
+@router.patch("/stores/me/theme", response_model=StoreResponse)
+def update_store_theme(
+    data: StoreThemeUpdate,
+    tenant: TenantContext = Depends(require_owner),
+    db: Session = Depends(get_db),
+) -> StoreResponse:
+    """Update active theme template and custom CSS token overrides. Restricted to owner."""
+    if not tenant.store:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found.")
+
+    store = tenant.store
+    store.theme_id = data.theme_id
+    store.theme_overrides = data.theme_overrides
+
+    db.commit()
+    db.refresh(store)
+    return StoreResponse.model_validate(store)
+
+
+@router.patch("/stores/me/content", response_model=StoreResponse)
+def update_store_content(
+    data: StoreContentUpdate,
+    tenant: TenantContext = Depends(require_owner),
+    db: Session = Depends(get_db),
+) -> StoreResponse:
+    """Update homepage sections, banners, announcements, and footer. Restricted to owner."""
+    if not tenant.store:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found.")
+
+    store = tenant.store
+    store.content = data.content
+
+    db.commit()
+    db.refresh(store)
+    return StoreResponse.model_validate(store)
+

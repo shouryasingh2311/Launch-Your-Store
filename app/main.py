@@ -10,7 +10,7 @@ from app.config import settings
 from app.database import Base, engine, get_db
 # Import all models so Base.metadata knows about them
 import app.models  # noqa: F401
-from app.routers import auth, categories, orders, products, public, stores
+from app.routers import auth, categories, dashboard, orders, products, public, stores, team
 
 
 @asynccontextmanager
@@ -50,6 +50,9 @@ app.include_router(categories.router)
 app.include_router(products.router)
 app.include_router(public.router)
 app.include_router(orders.router)
+app.include_router(dashboard.router)
+app.include_router(team.router)
+
 
 
 @app.get("/", tags=["General"])
