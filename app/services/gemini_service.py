@@ -47,12 +47,12 @@ Respond strictly with valid JSON with this exact structure:
 }}
 """
         payload = {
-            "model": "llama-3.3-70b-versatile",
+            "model": "llama-3.1-8b-instant",
             "messages": [{"role": "user", "content": prompt}],
             "response_format": {"type": "json_object"},
             "temperature": 0.3,
         }
-        with httpx.Client(timeout=10.0) as http_client:
+        with httpx.Client(timeout=3.5) as http_client:
             resp = http_client.post(url, headers=headers, json=payload)
             if resp.status_code == 200:
                 content = resp.json()["choices"][0]["message"]["content"]
@@ -310,7 +310,7 @@ def _call_groq_chatbot_tool(user_message: str) -> tuple[str | None, dict[str, An
             "Content-Type": "application/json",
         }
         payload = {
-            "model": "llama-3.3-70b-versatile",
+            "model": "llama-3.1-8b-instant",
             "messages": [
                 {
                     "role": "system",
@@ -327,7 +327,7 @@ def _call_groq_chatbot_tool(user_message: str) -> tuple[str | None, dict[str, An
             "tool_choice": "auto",
             "temperature": 0.0,
         }
-        with httpx.Client(timeout=10.0) as http_client:
+        with httpx.Client(timeout=3.5) as http_client:
             resp = http_client.post(url, headers=headers, json=payload)
             if resp.status_code == 200:
                 msg = resp.json()["choices"][0]["message"]
