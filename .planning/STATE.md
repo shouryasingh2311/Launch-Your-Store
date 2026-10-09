@@ -1,7 +1,7 @@
 # STATE.md — Launch-Your-Store (Fullstack)
 
 ## Overview
-- **Backend:** FastAPI, SQLAlchemy, PostgreSQL, PyJWT, multi-tenant schemas, Groq/Gemini AI dual-provider failover, CSV pipeline (Phases 1-5 Complete)
+- **Backend:** FastAPI, SQLAlchemy 2.0, PostgreSQL (Supabase pooler), PyJWT, multi-tenant isolation, Gemini/Groq dual failover, CSV pipeline, demo seed script (Phases 1-6 Complete)
 - **Frontend:** React 18, Vite, Tailwind CSS, 4 theme engines, Onboarding Wizard, Live Storefront, Admin Dashboard, AI Chatbot (Phases 1-6 Complete)
 
 ## Phase Progress
@@ -12,7 +12,8 @@
 | Phase 3: Theme System, Storefront & Orders | Backend + Frontend | ✅ Completed | 2026-10-09 |
 | Phase 4: Admin Dashboard, Products & Settings | Backend + Frontend | ✅ Completed | 2026-10-09 |
 | Phase 5: AI Chatbot & CSV Import | Backend + Frontend | ✅ Completed | 2026-10-09 |
-| Phase 6: Polish & Responsive Pass | Frontend (Verified at 360/768/1280) | ✅ Completed | 2026-10-09 |
+| Phase 6: Hardening, Isolation Tests, Demo Seed & Polish | Backend + Frontend | ✅ Completed | 2026-10-09 |
+| Phase 7: Docker, README & Final Deployment | Backend + Frontend | ⬜ In Progress | 2026-10-10 |
 
 ## Implemented Features (All 15 Hackathon Checkpoints)
 - **Checkpoint 1 (Onboarding Wizard):** 5-step wizard with Zod validation, auto draft saving to localStorage, logo preview.

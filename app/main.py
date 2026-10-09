@@ -20,12 +20,30 @@ async def lifespan(app: FastAPI):
     yield
 
 
+import logging
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+logger = logging.getLogger("uvicorn.error")
+
 app = FastAPI(
     title="Launch-Your-Store API",
     description="Multi-tenant backend for no-code e-commerce store builder with AI assistant.",
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc: Exception):
+    """Sanitize all internal errors to prevent database schema/traceback leakage."""
+    if isinstance(exc, (HTTPException, StarletteHTTPException)):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    logger.error(f"Internal error on {request.method} {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred. Please try again later."},
+    )
 
 # CORS configuration
 origins = [
