@@ -1,12 +1,12 @@
 # STATE.md — Launch-Your-Store Backend
 
 ## Current Phase
-Phase 0 — Planning complete, ready to begin Phase 1
+Phase 2 — Auth + Store + Categories + Seed
 
 ## Phase Status
 | Phase | Name | Status |
 |---|---|---|
-| 1 | Scaffold + Deploy Spike | ⬜ not started |
+| 1 | Scaffold + Deploy Spike | ✅ completed |
 | 2 | Auth + Store + Categories + Seed | ⬜ not started |
 | 3 | Public Storefront + Orders + Product CRUD | ⬜ not started |
 | 4 | Dashboard + Settings + Content | ⬜ not started |
@@ -15,10 +15,10 @@ Phase 0 — Planning complete, ready to begin Phase 1
 | 7 | Docker + README + Final Deploy | ⬜ not started |
 
 ## Infra Status
-- [ ] Supabase project created
+- [x] Supabase project created & DB connection verified (PostgreSQL 17 on pooler port 6543)
 - [ ] Vercel account set up
 - [ ] Google AI Studio key obtained
-- [ ] GitHub repo `teamname_Cypher` created + shared with `mystartupwave`
+- [x] GitHub repo created (shouryasingh2311/Launch-Your-Store)
 
 ## Blockers
 - None yet
