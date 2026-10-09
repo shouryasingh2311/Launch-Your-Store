@@ -343,3 +343,80 @@ class TeamMemberResponse(BaseModel):
     created_at: datetime
 
 
+# ===================== CSV / EXCEL IMPORT SCHEMAS =====================
+
+class ImportRowError(BaseModel):
+    row: int
+    field: str
+    issue: str
+    fix_suggestion: str
+
+
+class ImportPreviewResponse(BaseModel):
+    headers: list[str]
+    column_mapping: dict[str, str]
+    total_rows: int
+    preview_rows: list[dict[str, Any]]
+
+
+class ImportValidateResponse(BaseModel):
+    total_rows: int
+    valid_rows: int
+    invalid_rows: int
+    errors: list[ImportRowError]
+
+
+class ImportCommitRequest(BaseModel):
+    column_mapping: dict[str, str] | None = None
+    auto_create_categories: bool = True
+
+
+class ImportCommitResponse(BaseModel):
+    status: str
+    imported_count: int
+    skipped_count: int
+    errors: list[ImportRowError]
+    message: str
+
+
+# ===================== AI STORE SETUP SCHEMAS =====================
+
+class AISetupRequest(BaseModel):
+    description: str = Field(..., min_length=5, max_length=500, description="One sentence describing the business")
+
+
+class AISuggestedCategory(BaseModel):
+    name: str
+    emoji: str
+
+
+class AISetupResponse(BaseModel):
+    categories: list[AISuggestedCategory]
+    tagline: str
+    theme_id: str
+
+
+# ===================== CHATBOT SCHEMAS =====================
+
+class ChatTable(BaseModel):
+    columns: list[str]
+    rows: list[list[Any]]
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=1000)
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    table: ChatTable | None = None
+    tool: str | None = None
+    params: dict[str, Any] | None = None
+
+
+class ChatToolDirectRequest(BaseModel):
+    tool: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+
