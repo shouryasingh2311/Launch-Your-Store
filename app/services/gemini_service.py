@@ -1,6 +1,8 @@
 import hashlib
+import json
 import time
 from typing import Any
+import httpx
 from google import genai
 from google.genai import types
 
@@ -22,17 +24,54 @@ def get_gemini_client() -> genai.Client | None:
         return None
 
 
-def get_ai_setup_suggestions(description: str) -> AISetupResponse:
-    """Generate business categories, tagline, and theme from a description."""
-    client = get_gemini_client()
-
-    prompt = f"""
+def _call_groq_setup_suggestions(description: str) -> AISetupResponse | None:
+    """Fallback: call Groq API with structured JSON output."""
+    if not settings.GROQ_API_KEY or settings.GROQ_API_KEY.strip() == "":
+        return None
+    try:
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {settings.GROQ_API_KEY.strip()}",
+            "Content-Type": "application/json",
+        }
+        prompt = f"""
 Analyze this small business description: "{description.strip()}".
-Suggest 4-6 relevant product categories (each with a single fitting emoji), an engaging tagline, and the best matching theme from ["minimal", "vibrant", "elegant", "midnight"].
-    """
+Suggest 4-6 relevant product categories (each with a single fitting emoji), an engaging tagline, and the best matching theme from ["minimal", "vibrant", "elegant", "midnight", "modern", "warm", "bold", "dark", "playful"].
+Respond strictly with valid JSON with this exact structure:
+{{
+  "categories": [
+    {{"name": "Category Name", "emoji": "emoji"}}
+  ],
+  "tagline": "Engaging tagline",
+  "theme_id": "theme"
+}}
+"""
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [{"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.3,
+        }
+        with httpx.Client(timeout=10.0) as http_client:
+            resp = http_client.post(url, headers=headers, json=payload)
+            if resp.status_code == 200:
+                content = resp.json()["choices"][0]["message"]["content"]
+                return AISetupResponse.model_validate_json(content)
+    except Exception:
+        pass
+    return None
 
+
+def get_ai_setup_suggestions(description: str) -> AISetupResponse:
+    """Generate business categories, tagline, and theme from a description with multi-provider fallback."""
+    # 1. Primary: Google Gemini
+    client = get_gemini_client()
     if client:
         try:
+            prompt = f"""
+Analyze this small business description: "{description.strip()}".
+Suggest 4-6 relevant product categories (each with a single fitting emoji), an engaging tagline, and the best matching theme from ["minimal", "vibrant", "elegant", "midnight"].
+            """
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt,
@@ -45,9 +84,14 @@ Suggest 4-6 relevant product categories (each with a single fitting emoji), an e
             if response.text:
                 return AISetupResponse.model_validate_json(response.text)
         except Exception:
-            pass  # Fall back to heuristic defaults on API failure or rate limit
+            pass  # Fall back to Groq
 
-    # Intelligent fallback heuristics based on description keywords
+    # 2. Secondary: Groq Fallback
+    groq_res = _call_groq_setup_suggestions(description)
+    if groq_res:
+        return groq_res
+
+    # 3. Tertiary: Intelligent local keyword heuristics
     desc_lower = description.lower()
     if any(k in desc_lower for k in ["jewel", "luxury", "gold", "silver", "craft", "heritage", "artisan"]):
         theme = "elegant"
@@ -89,8 +133,8 @@ Suggest 4-6 relevant product categories (each with a single fitting emoji), an e
     return AISetupResponse(categories=cats, tagline=tagline, theme_id=theme)
 
 
-# Gemini tool definitions for chatbot function calling
-CHATBOT_TOOLS = [
+# Gemini tool definitions
+GEMINI_CHATBOT_TOOLS = [
     types.Tool(
         function_declarations=[
             types.FunctionDeclaration(
@@ -166,13 +210,146 @@ CHATBOT_TOOLS = [
     )
 ]
 
+# Groq OpenAI-compatible tool definitions
+GROQ_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "top_products",
+            "description": "Get top products ranked by revenue or units sold for a period.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "period": {"type": "string", "description": "Time period: today, this_week, last_week, this_month, last_month, last_7_days, last_30_days"},
+                    "limit": {"type": "integer", "description": "Number of products to return, default 5"},
+                    "by": {"type": "string", "description": "'revenue' or 'units'"},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "low_stock",
+            "description": "Get products with current stock at or below a threshold.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "threshold": {"type": "integer", "description": "Stock count threshold, default 5"},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "revenue_compare",
+            "description": "Compare revenue and order count between two periods.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "period_a": {"type": "string", "description": "First period, e.g. this_week"},
+                    "period_b": {"type": "string", "description": "Second period, e.g. last_week"},
+                },
+                "required": ["period_a", "period_b"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "orders_summary",
+            "description": "Get order count and revenue summary with status breakdown for a period.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "period": {"type": "string", "description": "Time period, e.g. this_month"},
+                    "status": {"type": "string", "description": "Optional status filter"},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "sales_by_category",
+            "description": "Get sales volume and revenue grouped by category for a period.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "period": {"type": "string", "description": "Time period, e.g. this_month"},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "product_info",
+            "description": "Get details, price, current stock, and SKU for a named product.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Product name to search"},
+                },
+                "required": ["name"],
+            },
+        },
+    },
+]
+
+
+def _call_groq_chatbot_tool(user_message: str) -> tuple[str | None, dict[str, Any]]:
+    """Fallback: use Groq OpenAI-compatible function calling."""
+    if not settings.GROQ_API_KEY or settings.GROQ_API_KEY.strip() == "":
+        return None, {}
+    try:
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {settings.GROQ_API_KEY.strip()}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an e-commerce data assistant for this store. "
+                        "Select the best tool to retrieve the exact figures. "
+                        "If the question is unrelated to store data or cannot be answered by the available tools, "
+                        "do not call any tool."
+                    ),
+                },
+                {"role": "user", "content": user_message.strip()},
+            ],
+            "tools": GROQ_TOOLS,
+            "tool_choice": "auto",
+            "temperature": 0.0,
+        }
+        with httpx.Client(timeout=10.0) as http_client:
+            resp = http_client.post(url, headers=headers, json=payload)
+            if resp.status_code == 200:
+                msg = resp.json()["choices"][0]["message"]
+                tool_calls = msg.get("tool_calls")
+                if tool_calls:
+                    tc = tool_calls[0]
+                    fn_name = tc["function"]["name"]
+                    args_val = tc["function"].get("arguments", "{}")
+                    fn_args = json.loads(args_val) if isinstance(args_val, str) else args_val
+                    if fn_name in CHAT_TOOL_REGISTRY:
+                        return fn_name, fn_args or {}
+    except Exception:
+        pass
+    return None, {}
+
 
 def execute_chatbot_query(
     db: Any,
     store_id: int,
     user_message: str,
 ) -> dict[str, Any]:
-    """Execute merchant chatbot query with tool calling, caching, and strict honesty."""
+    """Execute merchant chatbot query with multi-provider failover, caching, and strict honesty."""
     # Check 60-second cache
     cache_key = f"{store_id}:{hashlib.md5(user_message.strip().lower().encode()).hexdigest()}"
     now = time.time()
@@ -181,10 +358,11 @@ def execute_chatbot_query(
         if now - cached_time < 60:
             return cached_res
 
-    client = get_gemini_client()
     chosen_tool: str | None = None
     tool_params: dict[str, Any] = {}
 
+    # 1. Primary: Google Gemini Function Calling
+    client = get_gemini_client()
     if client:
         try:
             chat_prompt = f"""
@@ -197,21 +375,26 @@ If the question is unrelated to store data or cannot be answered by the availabl
                 model="gemini-2.5-flash",
                 contents=chat_prompt,
                 config=types.GenerateContentConfig(
-                    tools=CHATBOT_TOOLS,
+                    tools=GEMINI_CHATBOT_TOOLS,
                     temperature=0.0,
                 ),
             )
-
-            # Check if Gemini made a function call
             if response.function_calls:
                 fn_call = response.function_calls[0]
                 if fn_call.name in CHAT_TOOL_REGISTRY:
                     chosen_tool = fn_call.name
                     tool_params = dict(fn_call.args or {})
         except Exception:
-            pass  # Fall back to heuristic rule matcher
+            pass  # Fall back to Groq
 
-    # If Gemini didn't make a function call, check keyword heuristics (fallback mode)
+    # 2. Secondary: Groq Function Calling
+    if not chosen_tool:
+        groq_tool, groq_params = _call_groq_chatbot_tool(user_message)
+        if groq_tool:
+            chosen_tool = groq_tool
+            tool_params = groq_params
+
+    # 3. Tertiary: Keyword heuristics (offline/local fallback)
     if not chosen_tool:
         msg_lower = user_message.lower()
         if any(w in msg_lower for w in ["top", "best seller", "highest sale", "most popular"]) or ("selling" in msg_lower and "product" in msg_lower):
