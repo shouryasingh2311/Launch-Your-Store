@@ -10,6 +10,7 @@ from app.config import settings
 from app.database import Base, engine, get_db
 # Import all models so Base.metadata knows about them
 import app.models  # noqa: F401
+from app.routers import auth, categories, stores
 
 
 @asynccontextmanager
@@ -42,6 +43,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register route modules
+app.include_router(auth.router)
+app.include_router(stores.router)
+app.include_router(categories.router)
+
 
 @app.get("/", tags=["General"])
 def root() -> dict[str, Any]:
@@ -65,3 +71,4 @@ def health_check(db: Session = Depends(get_db)) -> dict[str, str]:
         "database": db_status,
         "mode": "production" if "pooler" in settings.DATABASE_URL else "local",
     }
+

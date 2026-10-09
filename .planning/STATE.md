@@ -1,13 +1,13 @@
 # STATE.md — Launch-Your-Store Backend
 
 ## Current Phase
-Phase 2 — Auth + Store + Categories + Seed
+Phase 3 — Public Storefront + Orders + Product CRUD
 
 ## Phase Status
 | Phase | Name | Status |
 |---|---|---|
 | 1 | Scaffold + Deploy Spike | ✅ completed |
-| 2 | Auth + Store + Categories + Seed | ⬜ not started |
+| 2 | Auth + Store + Categories + Seed | ✅ completed |
 | 3 | Public Storefront + Orders + Product CRUD | ⬜ not started |
 | 4 | Dashboard + Settings + Content | ⬜ not started |
 | 5 | CSV Import + Chatbot + AI Setup | ⬜ not started |
