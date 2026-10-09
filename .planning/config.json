@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "project": "Launch-Your-Store",
+  "scope": "backend",
+  "created": "2026-10-09",
+  "workflow": {
+    "auto_commit": false,
+    "require_tests": true,
+    "require_review": false
+  },
+  "conventions": {
+    "language": "python",
+    "framework": "fastapi",
+    "orm": "sqlalchemy",
+    "formatting": "ruff",
+    "test_runner": "pytest"
+  }
+}
