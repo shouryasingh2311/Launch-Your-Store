@@ -12,8 +12,8 @@ export function LoginPage() {
   const { login } = useAuthStore()
   const toast = useToast()
 
-  const [email, setEmail] = useState('owner@crafthaven.store')
-  const [password, setPassword] = useState('password123')
+  const [email, setEmail] = useState('owner@launchstore.com')
+  const [password, setPassword] = useState('Password123')
   const [role, setRole] = useState('owner')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -70,7 +70,8 @@ export function LoginPage() {
                 type="button"
                 onClick={() => {
                   setRole('owner')
-                  setEmail('owner@crafthaven.store')
+                  setEmail('owner@launchstore.com')
+                  setPassword('Password123')
                 }}
                 className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
                   role === 'owner'
@@ -84,7 +85,8 @@ export function LoginPage() {
                 type="button"
                 onClick={() => {
                   setRole('staff')
-                  setEmail('staff@crafthaven.store')
+                  setEmail('staff@launchstore.com')
+                  setPassword('Password123')
                 }}
                 className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
                   role === 'staff'

@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { AdminLayout } from '../components/admin/AdminLayout'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { useStoreData } from '../store/useStoreData'
 import { formatINR } from '../lib/utils'
+import { api } from '../lib/api'
 import { TrendingUp, ShoppingCart, AlertCircle, PackageCheck, ArrowUpRight, Plus, RefreshCw } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { Link } from 'react-router-dom'
@@ -11,14 +12,43 @@ import { Button } from '../components/ui/Button'
 export function AdminDashboardPage() {
   const { store, products, orders, updateStockInline } = useStoreData()
 
+  const [dbSummary, setDbSummary] = useState(null)
+  const [dbChart, setDbChart] = useState(null)
+
+  useEffect(() => {
+    let isCancelled = false
+    async function loadStats() {
+      try {
+        const [sumRes, chartRes] = await Promise.all([
+          api.getDashboardSummary(),
+          api.getRevenueTrend(7)
+        ])
+        if (!isCancelled) {
+          if (sumRes) setDbSummary(sumRes)
+          if (chartRes && chartRes.length > 0) {
+            setDbChart(chartRes.map(pt => ({
+              day: pt.date?.slice(5) || pt.date,
+              revenue: Number(pt.revenue)
+            })))
+          }
+        }
+      } catch (err) {
+        // Graceful fallback to local mock store
+        console.warn('Dashboard DB stats fetch fallback to local:', err.message)
+      }
+    }
+    loadStats()
+    return () => { isCancelled = true }
+  }, [])
+
   // Calculate KPIs
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0)
-  const totalOrders = orders.length
-  const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
+  const totalRevenue = dbSummary?.gross_revenue !== undefined ? dbSummary.gross_revenue : orders.reduce((sum, o) => sum + (o.total || 0), 0)
+  const totalOrders = dbSummary?.total_orders !== undefined ? dbSummary.total_orders : orders.length
+  const avgOrderValue = dbSummary?.aov !== undefined ? dbSummary.aov : (totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0)
   const lowStockProducts = products.filter(p => p.stock <= (p.low_stock_threshold || 5))
 
-  // 7-day revenue mock chart data
-  const chartData = [
+  // 7-day revenue chart data
+  const chartData = dbChart || [
     { day: 'Mon', revenue: 14200 },
     { day: 'Tue', revenue: 18900 },
     { day: 'Wed', revenue: 16400 },

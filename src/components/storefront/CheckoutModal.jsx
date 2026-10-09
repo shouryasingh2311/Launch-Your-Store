@@ -7,6 +7,8 @@ import { useStoreData } from '../../store/useStoreData'
 import { CheckCircle2, ShieldCheck, ArrowRight, Truck } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
+import { api } from '../../lib/api'
+
 export function CheckoutModal({ isOpen, onClose, storeSlug, onOrderCompleted }) {
   const { stores, clearCart } = useCartStore()
   const { createOrder } = useStoreData()
@@ -28,48 +30,78 @@ export function CheckoutModal({ isOpen, onClose, storeSlug, onOrderCompleted }) 
   const discount = subtotal > 3000 ? 300 : 0
   const total = subtotal + shipping - discount
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    setTimeout(() => {
-      const orderPayload = {
+    const orderPayload = {
+      customer_name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      subtotal,
+      discount,
+      shipping,
+      total,
+      payment_method: formData.paymentMethod,
+      items: items.map(it => ({
+        product_id: it.product_id,
+        variant_id: it.variant_id,
+        name_snapshot: it.name + (it.variant ? ` (${it.variant})` : ''),
+        price_snapshot: it.price,
+        qty: it.qty
+      }))
+    }
+
+    let created = null
+
+    // Attempt backend database order creation
+    try {
+      const backendPayload = {
         customer_name: formData.name,
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
-        subtotal,
-        discount,
-        shipping,
-        total,
-        payment_method: formData.paymentMethod,
         items: items.map(it => ({
           product_id: it.product_id,
-          variant_id: it.variant_id,
-          name_snapshot: it.name + (it.variant ? ` (${it.variant})` : ''),
-          price_snapshot: it.price,
+          variant_id: it.variant_id || null,
           qty: it.qty
         }))
       }
-
-      const created = createOrder(orderPayload)
-      clearCart(storeSlug)
-      setIsSubmitting(false)
-      setCompletedOrder(created)
-
-      // Fire celebratory confetti!
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 }
-        })
-      } catch (err) {
-        // silent fallback if confetti blocked
+      const backendRes = await api.createPublicOrder(storeSlug, backendPayload)
+      if (backendRes && backendRes.order_number) {
+        created = {
+          ...orderPayload,
+          id: backendRes.id,
+          order_number: backendRes.order_number,
+          total: Number(backendRes.total),
+          status: backendRes.status
+        }
       }
+    } catch (apiErr) {
+      console.warn('Backend order creation returned error or offline, fallback to local store:', apiErr.message)
+    }
 
-      if (onOrderCompleted) onOrderCompleted(created)
-    }, 600)
+    if (!created) {
+      created = createOrder(orderPayload)
+    }
+
+    clearCart(storeSlug)
+    setIsSubmitting(false)
+    setCompletedOrder(created)
+
+    // Fire celebratory confetti!
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 }
+      })
+    } catch (err) {
+      // silent fallback if confetti blocked
+    }
+
+    if (onOrderCompleted) onOrderCompleted(created)
   }
 
   const handleClose = () => {

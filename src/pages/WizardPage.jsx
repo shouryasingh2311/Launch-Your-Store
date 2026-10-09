@@ -9,6 +9,7 @@ import { useToast } from '../components/ui/Toast'
 import { PREDEFINED_CATEGORIES, THEMES_METADATA, getAISetupSuggestions } from '../lib/mockData'
 import { LivePhonePreview } from '../components/wizard/LivePhonePreview'
 import { useStoreData } from '../store/useStoreData'
+import { api } from '../lib/api'
 import confetti from 'canvas-confetti'
 
 export function WizardPage() {
@@ -47,9 +48,26 @@ export function WizardPage() {
   }, [wizardData])
 
   // AI Setup Generator
-  const handleGenerateAISuggestions = () => {
+  const handleGenerateAISuggestions = async () => {
     if (!aiPrompt.trim()) return
     setIsAiLoading(true)
+
+    try {
+      const suggestions = await api.getAISetupSuggestions(aiPrompt)
+      if (suggestions && suggestions.categories) {
+        setWizardData(prev => ({
+          ...prev,
+          tagline: suggestions.tagline || prev.tagline,
+          theme_id: suggestions.theme_id || prev.theme_id,
+          categories: suggestions.categories.map(c => typeof c === 'string' ? c : c.name)
+        }))
+        setIsAiLoading(false)
+        toast.success('AI Setup Applied! ⚡', `Generated tailored categories, tagline, and selected ${suggestions.theme_id || 'custom'} theme.`)
+        return
+      }
+    } catch (err) {
+      console.warn('AI suggestions API call fallback to local generator:', err.message)
+    }
 
     setTimeout(() => {
       const suggestions = getAISetupSuggestions(aiPrompt)
@@ -61,7 +79,7 @@ export function WizardPage() {
       }))
       setIsAiLoading(false)
       toast.success('AI Setup Applied! ⚡', `Generated tailored categories, tagline, and selected ${suggestions.theme_name} theme.`)
-    }, 700)
+    }, 400)
   }
 
   // Category toggle

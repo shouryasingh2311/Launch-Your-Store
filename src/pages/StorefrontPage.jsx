@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useStoreData } from '../store/useStoreData'
+import { api } from '../lib/api'
 import { StorefrontHeader } from '../components/storefront/StorefrontHeader'
 import { HeroSection } from '../components/storefront/HeroSection'
 import { CategoryChips } from '../components/storefront/CategoryChips'
@@ -15,8 +16,56 @@ export function StorefrontPage() {
   const { slug } = useParams()
   const { store, products, categories } = useStoreData()
 
-  // Use either the routed store or the current store
-  const activeStore = store?.slug === slug ? store : { ...store, slug }
+  const [remoteStore, setRemoteStore] = useState(null)
+  const [remoteProducts, setRemoteProducts] = useState(null)
+  const [remoteCategories, setRemoteCategories] = useState(null)
+
+  useEffect(() => {
+    if (!slug) return
+    let isCancelled = false
+    async function loadPublicData() {
+      try {
+        const [storeRes, productsRes] = await Promise.all([
+          api.getPublicStore(slug),
+          api.getPublicProducts(slug)
+        ])
+        if (!isCancelled) {
+          if (storeRes) {
+            setRemoteStore(storeRes)
+            if (storeRes.categories && storeRes.categories.length > 0) {
+              setRemoteCategories(storeRes.categories)
+            }
+          }
+          if (productsRes?.items && productsRes.items.length > 0) {
+            const mapped = productsRes.items.map(p => ({
+              id: p.id,
+              name: p.name,
+              sku: p.sku,
+              description: p.description,
+              price: Number(p.price),
+              compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : null,
+              stock: p.stock,
+              is_active: p.is_active,
+              images: p.images || [],
+              category_id: p.category_id,
+              categoryName: p.category?.name || 'General',
+              variants: p.variants?.length ? p.variants : [{ id: `v-${p.id}`, name: 'Standard', stock: p.stock, price_delta: 0 }]
+            }))
+            setRemoteProducts(mapped)
+          }
+        }
+      } catch (err) {
+        console.warn('Storefront API fetch fallback to local store:', err.message)
+      }
+    }
+    loadPublicData()
+    return () => { isCancelled = true }
+  }, [slug])
+
+  // Use either remote DB store or local store
+  const activeStore = remoteStore || (store?.slug === slug ? store : { ...store, slug })
+  const activeProducts = (remoteProducts && remoteProducts.length > 0) ? remoteProducts : products
+  const activeCategories = (remoteCategories && remoteCategories.length > 0) ? remoteCategories : categories
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -28,7 +77,7 @@ export function StorefrontPage() {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let result = products.filter(p => p.is_active !== false)
+    let result = activeProducts.filter(p => p.is_active !== false)
 
     if (selectedCategory) {
       result = result.filter(p => p.category_id === selectedCategory || p.categoryName?.toLowerCase().includes(selectedCategory.toLowerCase()))
@@ -90,7 +139,7 @@ export function StorefrontPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div className="flex-1 min-w-0">
               <CategoryChips
-                categories={categories}
+                categories={activeCategories}
                 selectedCategory={selectedCategory}
                 onSelectCategory={setSelectedCategory}
               />

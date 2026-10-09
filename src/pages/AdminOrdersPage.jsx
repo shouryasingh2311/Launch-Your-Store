@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge'
 import { useStoreData } from '../store/useStoreData'
 import { formatINR } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
+import { api } from '../lib/api'
 import { ShoppingCart, Eye, Clock, CheckCircle2, Truck, Box, XCircle, BellRing, ArrowRight } from 'lucide-react'
 
 export function AdminOrdersPage() {
@@ -28,10 +29,14 @@ export function AdminOrdersPage() {
     cancelled: { variant: 'danger', label: 'Cancelled' }
   }
 
-  const handleStatusChange = (orderId, newStatus) => {
+  const handleStatusChange = async (orderId, newStatus) => {
     updateOrderStatus(orderId, newStatus)
-    // Update local selectedOrder if open
     setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev)
+    try {
+      await api.updateOrderStatus(orderId, newStatus)
+    } catch (err) {
+      console.warn('API updateOrderStatus fallback to local store:', err.message)
+    }
     toast.success('Status Updated', `Order marked as ${newStatus.toUpperCase()}. Simulated customer notification dispatched!`)
   }
 

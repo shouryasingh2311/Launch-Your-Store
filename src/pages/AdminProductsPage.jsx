@@ -9,6 +9,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { useStoreData } from '../store/useStoreData'
 import { formatINR } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
+import { api } from '../lib/api'
 import { Search, Plus, Trash2, Edit2, Check, AlertCircle, Filter } from 'lucide-react'
 
 export function AdminProductsPage() {
@@ -73,7 +74,7 @@ export function AdminProductsPage() {
     setIsDrawerOpen(true)
   }
 
-  const handleSaveProduct = (e) => {
+  const handleSaveProduct = async (e) => {
     e.preventDefault()
     const cat = categories.find(c => c.id === formData.category_id)
 
@@ -85,6 +86,19 @@ export function AdminProductsPage() {
         compare_at_price: formData.compare_at_price ? Number(formData.compare_at_price) : null,
         stock: Number(formData.stock)
       })
+      try {
+        await api.updateProduct(editingProduct.id, {
+          name: formData.name,
+          category_id: formData.category_id,
+          price: Number(formData.price),
+          compare_at_price: formData.compare_at_price ? Number(formData.compare_at_price) : null,
+          stock: Number(formData.stock),
+          sku: formData.sku,
+          description: formData.description
+        })
+      } catch (err) {
+        console.warn('API updateProduct fallback to local store:', err.message)
+      }
       toast.success('Product Updated', `${formData.name} was updated successfully.`)
     } else {
       addProduct({
@@ -94,15 +108,33 @@ export function AdminProductsPage() {
         compare_at_price: formData.compare_at_price ? Number(formData.compare_at_price) : null,
         stock: Number(formData.stock)
       })
+      try {
+        await api.createProduct({
+          name: formData.name,
+          category_id: formData.category_id,
+          price: Number(formData.price),
+          compare_at_price: formData.compare_at_price ? Number(formData.compare_at_price) : null,
+          stock: Number(formData.stock),
+          sku: formData.sku,
+          description: formData.description
+        })
+      } catch (err) {
+        console.warn('API createProduct fallback to local store:', err.message)
+      }
       toast.success('Product Created', `${formData.name} was added to the catalog.`)
     }
     setIsDrawerOpen(false)
   }
 
-  const handleDelete = (id, name) => {
+  const handleDelete = async (id, name) => {
     if (window.confirm(`Delete product "${name}"?`)) {
       deleteProduct(id)
       setSelectedIds(prev => prev.filter(i => i !== id))
+      try {
+        await api.deleteProduct(id)
+      } catch (err) {
+        console.warn('API deleteProduct fallback to local store:', err.message)
+      }
       toast.info('Product Removed', `${name} has been deleted.`)
     }
   }

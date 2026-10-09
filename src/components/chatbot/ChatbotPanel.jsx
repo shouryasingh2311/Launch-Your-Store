@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Bot, X, Sparkles, Send, Database, ArrowRight, CornerDownLeft } from 'lucide-react'
 import { executeChatbotQuery } from '../../lib/mockData'
 import { useStoreData } from '../../store/useStoreData'
+import { api } from '../../lib/api'
 
 export function ChatbotPanel() {
   const [isOpen, setIsOpen] = useState(false)
@@ -25,7 +26,7 @@ export function ChatbotPanel() {
     "Orders pipeline status"
   ]
 
-  const handleSendMessage = (textToSend) => {
+  const handleSendMessage = async (textToSend) => {
     const q = textToSend || inputMessage
     if (!q.trim()) return
 
@@ -38,7 +39,26 @@ export function ChatbotPanel() {
     setMessages(prev => [...prev, userMsg])
     setInputMessage('')
 
-    // Deterministic tool query execution
+    // 1. Try real Gemini / Groq dual failover backend AI service
+    try {
+      const aiRes = await api.askAI(q)
+      if (aiRes && aiRes.answer) {
+        const botMsg = {
+          id: `bot-${Date.now()}`,
+          sender: 'bot',
+          text: aiRes.answer,
+          table: aiRes.table,
+          tool: aiRes.tool,
+          params: aiRes.params
+        }
+        setMessages(prev => [...prev, botMsg])
+        return
+      }
+    } catch (err) {
+      console.warn('Real AI assistant call fallback to local engine:', err.message)
+    }
+
+    // 2. Deterministic local tool query fallback
     setTimeout(() => {
       const response = executeChatbotQuery(q, products, orders)
       const botMsg = {
@@ -50,7 +70,7 @@ export function ChatbotPanel() {
         params: response.params
       }
       setMessages(prev => [...prev, botMsg])
-    }, 400)
+    }, 300)
   }
 
   return (

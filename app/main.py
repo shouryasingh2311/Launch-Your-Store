@@ -73,10 +73,40 @@ app.include_router(team.router)
 app.include_router(imports.router)
 app.include_router(ai.router)
 
+# Mount /api prefix router alias for serverless and reverse proxy compatibility
+from fastapi import APIRouter
+api_router = APIRouter(prefix="/api")
+api_router.include_router(auth.router)
+api_router.include_router(stores.router)
+api_router.include_router(categories.router)
+api_router.include_router(products.router)
+api_router.include_router(public.router)
+api_router.include_router(orders.router)
+api_router.include_router(dashboard.router)
+api_router.include_router(team.router)
+api_router.include_router(imports.router)
+api_router.include_router(ai.router)
+
+
+@api_router.get("/health", tags=["Health"])
+def api_health_check(db: Session = Depends(get_db)) -> dict[str, str]:
+    return health_check(db)
+
+
+app.include_router(api_router)
+
+
+import os
+from starlette.requests import Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 
 @app.get("/", tags=["General"])
-def root() -> dict[str, Any]:
+def root(request: Request) -> Any:
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept and os.path.isfile("dist/index.html"):
+        return FileResponse("dist/index.html")
     return {
         "app": "Launch-Your-Store API",
         "status": "online",
@@ -97,4 +127,21 @@ def health_check(db: Session = Depends(get_db)) -> dict[str, str]:
         "database": db_status,
         "mode": "production" if "pooler" in settings.DATABASE_URL else "local",
     }
+
+
+if os.path.isdir("dist"):
+    if os.path.isdir("dist/assets"):
+        app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str, request: Request):
+        if full_path.startswith(("docs", "openapi.json", "redoc", "api/")):
+            raise HTTPException(status_code=404, detail="Not Found")
+        file_path = os.path.join("dist", full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept or "*/*" in accept:
+            return FileResponse(os.path.join("dist", "index.html"))
+        raise HTTPException(status_code=404, detail="Not Found")
 
