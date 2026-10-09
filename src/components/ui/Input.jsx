@@ -16,13 +16,13 @@ export const Input = React.forwardRef(({
   return (
     <div className="w-full space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-semibold text-slate-700 tracking-wide uppercase">
+        <label htmlFor={inputId} className="block text-xs font-semibold text-[var(--sc-ink)] tracking-wide uppercase">
           {label}
         </label>
       )}
       <div className="relative">
         {Icon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--sc-muted)]">
             <Icon className="h-4 w-4" />
           </div>
         )}
@@ -31,26 +31,23 @@ export const Input = React.forwardRef(({
           id={inputId}
           type={type}
           className={cn(
-            "w-full rounded-lg border bg-white px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500",
-            Icon && "pl-9",
-            error
-              ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-              : "border-slate-300 focus:border-indigo-600 focus:ring-indigo-600",
+            'clay-input w-full px-3.5 py-2.5 text-sm text-[var(--sc-ink)] placeholder:text-[var(--sc-muted)] min-h-[44px]',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            Icon && 'pl-9',
+            error && 'border-red-400 focus:border-red-500',
             className
           )}
           {...props}
         />
       </div>
       {error && (
-        <p className="text-xs text-red-600 font-medium flex items-center gap-1">
-          <span>⚠️</span> {error}
-        </p>
+        <p className="text-xs text-[var(--sc-danger)] font-medium">⚠ {error}</p>
       )}
       {!error && helperText && (
-        <p className="text-xs text-slate-500">{helperText}</p>
+        <p className="text-xs text-[var(--sc-muted)]">{helperText}</p>
       )}
     </div>
   )
 })
 
-Input.displayName = "Input"
+Input.displayName = 'Input'

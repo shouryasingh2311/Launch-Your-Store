@@ -1,5 +1,5 @@
 /**
- * Central API Client for Launch-Your-Store Frontend
+ * Central API Client for Storecraft Frontend
  * Interacts with FastAPI backend routes and Supabase database.
  * Gracefully handles offline fallback to keep UI functional.
  */
@@ -243,6 +243,24 @@ export const api = {
       body: JSON.stringify({ description })
     })
     return handleResponse(res)
+  },
+
+  /**
+   * Upload an image file and return a data URL (client-side only, no backend storage needed).
+   * For production: swap this with a real upload-to-storage call.
+   */
+  uploadImage(file) {
+    return new Promise((resolve, reject) => {
+      if (!file) return reject(new Error('No file provided'))
+      const maxBytes = 5 * 1024 * 1024 // 5 MB
+      if (file.size > maxBytes) return reject(new Error('Image must be under 5 MB'))
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+      if (!allowed.includes(file.type)) return reject(new Error('Only JPEG, PNG, WebP, or GIF allowed'))
+      const reader = new FileReader()
+      reader.onload = e => resolve(e.target.result)
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
   },
 
   // ---- CSV Importer ----

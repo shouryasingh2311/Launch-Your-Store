@@ -2,55 +2,145 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================
+   STORECRAFT PLATFORM DESIGN SYSTEM
+   Emerald Ink (#064E3B) + Champagne (#F8E7C9)
+   Applied to: landing, auth, wizard, admin pages only.
+   Storefronts use their own theme-* classes below.
+   ===================================================== */
 @layer base {
   :root {
-    --brand-primary: #4f46e5;
-    --radius: 8px;
+    /* Brand colours */
+    --sc-ink:        #064E3B;   /* emerald ink — headings, buttons, sidebar */
+    --sc-ink-hover:  #0A6048;   /* brand hover */
+    --sc-champagne:  #F8E7C9;   /* page background */
+
+    /* Derived surfaces */
+    --sc-card:       #FFF9EC;   /* card / panel surface */
+    --sc-border:     #E8D5AE;   /* border colour */
+    --sc-muted:      #4B5F57;   /* muted / secondary text */
+    --sc-focus:      rgba(6,78,59,0.40); /* focus ring */
+
+    /* Semantic status (tuned to look good on champagne) */
+    --sc-success:    #166534;
+    --sc-success-bg: #DCFCE7;
+    --sc-warning:    #92400E;
+    --sc-warning-bg: #FEF3C7;
+    --sc-danger:     #9B1C1C;
+    --sc-danger-bg:  #FEE2E2;
+
+    --radius: 14px;
   }
 
+  /* Platform shell base */
   body {
-    @apply bg-slate-50 text-slate-900 antialiased font-sans;
+    background-color: var(--sc-champagne);
+    color: var(--sc-ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Headings use Poppins */
+  h1, h2, h3, h4, h5 {
+    font-family: 'Poppins', sans-serif;
+    color: var(--sc-ink);
+  }
+
+  /* Visible focus ring for every interactive element */
+  :focus-visible {
+    outline: 2px solid var(--sc-ink);
+    outline-offset: 2px;
   }
 }
 
-/* Theme definitions for Storefront */
+/* =====================================================
+   CLAYMORPHISM UTILITY LAYER
+   Clay cards: rounded, soft shadow, slight inset ring
+   ===================================================== */
+@layer components {
+  .clay-card {
+    background: var(--sc-card);
+    border-radius: 20px;
+    border: 1.5px solid var(--sc-border);
+    box-shadow:
+      0 2px 0 0 var(--sc-border),
+      0 8px 32px -4px rgba(6,78,59,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.65);
+  }
+
+  .clay-btn {
+    border-radius: 14px;
+    box-shadow:
+      0 3px 0 0 #0A6048,
+      0 6px 16px -2px rgba(6,78,59,0.20);
+    transition: transform 80ms, box-shadow 80ms;
+  }
+  .clay-btn:active {
+    transform: translateY(2px);
+    box-shadow:
+      0 1px 0 0 #0A6048,
+      0 2px 8px -2px rgba(6,78,59,0.15);
+  }
+
+  .clay-input {
+    background: rgba(255,255,255,0.85);
+    border: 1.5px solid var(--sc-border);
+    border-radius: 12px;
+    box-shadow: inset 0 2px 4px rgba(6,78,59,0.06);
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  .clay-input:focus {
+    border-color: var(--sc-ink);
+    box-shadow: inset 0 2px 4px rgba(6,78,59,0.06), 0 0 0 3px var(--sc-focus);
+    outline: none;
+  }
+}
+
+/* =====================================================
+   STOREFRONT THEMES (shopper-facing only)
+   Keep visually DISTINCT from Storecraft platform palette.
+   ===================================================== */
+
+/* Theme: Minimal */
 .theme-minimal {
-  --store-bg: #ffffff;
-  --store-surface: #ffffff;
-  --store-text: #09090b;
-  --store-muted: #71717a;
-  --store-border: #e4e4e7;
-  --store-primary: #18181b;
+  --store-bg:               #ffffff;
+  --store-surface:          #fafafa;
+  --store-text:             #09090b;
+  --store-muted:            #71717a;
+  --store-border:           #e4e4e7;
+  --store-primary:          #18181b;
   --store-primary-contrast: #ffffff;
-  --store-radius: 4px;
+  --store-radius:           4px;
   font-family: 'Inter', sans-serif;
 }
 
+/* Theme: Vibrant */
 .theme-vibrant {
-  --store-bg: #fdf4ff;
-  --store-surface: #ffffff;
-  --store-text: #2e1065;
-  --store-muted: #701a75;
-  --store-border: #f5d0fe;
-  --store-primary: #d946ef;
+  --store-bg:               #fdf4ff;
+  --store-surface:          #ffffff;
+  --store-text:             #2e1065;
+  --store-muted:            #701a75;
+  --store-border:           #f5d0fe;
+  --store-primary:          #d946ef;
   --store-primary-contrast: #ffffff;
-  --store-radius: 16px;
+  --store-radius:           16px;
   font-family: 'Poppins', sans-serif;
 }
 
+/* Theme: Elegant — warm slate with forest accent, distinct from Storecraft */
 .theme-elegant {
-  --store-bg: #fbf9f5;
-  --store-surface: #ffffff;
-  --store-text: #1c1917;
-  --store-muted: #78716c;
-  --store-border: #e7e5e4;
-  --store-primary: #14532d;
-  --store-primary-contrast: #f0fdf4;
-  --store-radius: 8px;
+  --store-bg:               #f9f6f0;
+  --store-surface:          #ffffff;
+  --store-text:             #1c1917;
+  --store-muted:            #78716c;
+  --store-border:           #e7e5e4;
+  --store-primary:          #7c3aed;
+  --store-primary-contrast: #ffffff;
+  --store-radius:           8px;
   font-family: 'Lato', sans-serif;
 }
-
 .theme-elegant h1,
 .theme-elegant h2,
 .theme-elegant h3,
@@ -58,30 +148,39 @@
   font-family: 'Playfair Display', serif;
 }
 
+/* Theme: Midnight */
 .theme-midnight {
-  --store-bg: #090d16;
-  --store-surface: #111726;
-  --store-text: #f1f5f9;
-  --store-muted: #94a3b8;
-  --store-border: #1e293b;
-  --store-primary: #14b8a6;
+  --store-bg:               #090d16;
+  --store-surface:          #111726;
+  --store-text:             #f1f5f9;
+  --store-muted:            #94a3b8;
+  --store-border:           #1e293b;
+  --store-primary:          #14b8a6;
   --store-primary-contrast: #042f2e;
-  --store-radius: 10px;
+  --store-radius:           10px;
   font-family: 'Space Grotesk', sans-serif;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Theme overrides via CSS variables (from theme_overrides JSON) */
+[style*="--to-primary"] {
+  --store-primary:          var(--to-primary, var(--store-primary));
+  --store-primary-contrast: var(--to-primary-contrast, var(--store-primary-contrast));
+  --store-bg:               var(--to-bg, var(--store-bg));
+  --store-surface:          var(--to-surface, var(--store-surface));
+  --store-text:             var(--to-text, var(--store-text));
+  --store-heading:          var(--to-heading, var(--store-text));
+  --store-link:             var(--to-link, var(--store-primary));
+  --store-border:           var(--to-border, var(--store-border));
+  --store-muted:            var(--to-muted, var(--store-muted));
+  --store-header-bg:        var(--to-header-bg, var(--store-surface));
+  --store-footer-bg:        var(--to-footer-bg, var(--store-surface));
+  --store-radius:           var(--to-radius, var(--store-radius));
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.5);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.8);
-}
+
+/* =====================================================
+   CUSTOM SCROLLBAR
+   ===================================================== */
+::-webkit-scrollbar          { width: 6px; height: 6px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: rgba(6,78,59,0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(6,78,59,0.45); }

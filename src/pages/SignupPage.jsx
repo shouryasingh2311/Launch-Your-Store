@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
-import { Card } from '../components/ui/Card'
 import { useAuthStore } from '../store/useAuthStore'
 import { useToast } from '../components/ui/Toast'
 import { ArrowRight } from 'lucide-react'
@@ -22,9 +21,9 @@ export function SignupPage() {
     setIsLoading(true)
     try {
       await signup(name, email, password)
-      toast.success('Account Created', 'Welcome to Launch-Your-Store!')
+      toast.success('Account Created', 'Welcome to Storecraft!')
       navigate('/onboarding')
-    } catch (err) {
+    } catch {
       toast.error('Signup Failed', 'Could not create account.')
     } finally {
       setIsLoading(false)
@@ -32,59 +31,36 @@ export function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full p-8 bg-slate-950 border-slate-800 text-slate-100 shadow-2xl space-y-6">
-        <div className="text-center space-y-2">
-          <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto text-white font-black text-base">
-            LYS
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--sc-champagne)' }}>
+      <div className="clay-card max-w-md w-full p-8 space-y-7">
+
+        <div className="text-center space-y-3">
+          <div className="h-12 w-12 bg-brand rounded-2xl flex items-center justify-center mx-auto text-champagne font-black text-base shadow-clay-btn">
+            SC
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Create Merchant Account</h2>
-          <p className="text-xs text-slate-400">Launch your ecommerce store in minutes</p>
+          <div>
+            <h1 className="font-poppins font-bold text-2xl text-brand">Create Merchant Account</h1>
+            <p className="text-xs text-[var(--sc-muted)] mt-1">Craft your store in minutes — zero code</p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Full Name"
-            required
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
-          />
+          <Input label="Full Name" required value={name} onChange={e => setName(e.target.value)} />
+          <Input label="Email Address" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+          <Input label="Password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
 
-          <Input
-            label="Email Address"
-            type="email"
-            required
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="bg-slate-900 border-slate-700 text-white"
-          />
-
-          <Input
-            label="Password"
-            type="password"
-            required
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="bg-slate-900 border-slate-700 text-white"
-          />
-
-          <Button
-            type="submit"
-            isLoading={isLoading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 font-bold text-xs"
-          >
-            Create Store Account <ArrowRight className="h-3.5 w-3.5 ml-1" />
+          <Button type="submit" isLoading={isLoading} className="w-full font-bold">
+            Create Account <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Button>
         </form>
 
-        <div className="text-center pt-2 text-xs text-slate-500 border-t border-slate-800">
+        <p className="text-center text-xs text-[var(--sc-muted)] border-t border-champagne-border pt-4">
           Already registered?{' '}
-          <Link to="/login" className="text-indigo-400 hover:underline font-semibold">
+          <Link to="/login" className="font-semibold text-brand hover:underline">
             Sign In
           </Link>
-        </div>
-      </Card>
+        </p>
+      </div>
     </div>
   )
 }
