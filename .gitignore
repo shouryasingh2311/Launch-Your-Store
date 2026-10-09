@@ -1,4 +1,13 @@
-# Logs
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Node / Vite
+node_modules
+dist
+dist-ssr
+*.local
 logs
 *.log
 npm-debug.log*
@@ -7,16 +16,28 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
 
-# Editor directories and files
-.vscode/*
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & OS
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj

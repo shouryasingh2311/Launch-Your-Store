@@ -1,6 +1,6 @@
 {
   "project_code": "LYS",
-  "project_title": "Launch-Your-Store Frontend",
+  "project_title": "Launch-Your-Store",
   "mode": "yolo",
   "granularity": "detailed",
   "parallelization": true,
@@ -9,12 +9,8 @@
   "workflow": {
     "research": true,
     "plan_check": true,
-    "verifier": false,
+    "verifier": true,
     "nyquist_validation": true,
-    "auto_advance": true,
-    "research_before_questions": false
-  },
-  "ship": {
-    "pr_body_sections": []
+    "auto_advance": true
   }
 }

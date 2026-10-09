@@ -1,18 +1,18 @@
-# Launch-Your-Store Frontend — Project State
+# STATE.md — Launch-Your-Store (Fullstack)
 
-## Current Phase
-**Phase:** Complete
-**Status:** All 6 phases implemented, production build verified, Vite dev server running live
+## Overview
+- **Backend:** FastAPI, SQLAlchemy, PostgreSQL, PyJWT, multi-tenant schemas & isolation tests (Phases 1-4 Complete)
+- **Frontend:** React 18, Vite, Tailwind CSS, 4 theme engines, Onboarding Wizard, Live Storefront, Admin Dashboard, AI Chatbot (Phases 1-6 Complete)
 
 ## Phase Progress
-| Phase | Status | Started | Completed |
-|-------|--------|---------|-----------|
-| 1 — Foundation & Design System | ✅ Completed | 2026-10-09 | 2026-10-09 |
-| 2 — Auth & Onboarding Wizard | ✅ Completed | 2026-10-09 | 2026-10-09 |
-| 3 — Theme System & Storefront | ✅ Completed | 2026-10-09 | 2026-10-09 |
-| 4 — Admin Panel | ✅ Completed | 2026-10-09 | 2026-10-09 |
-| 5 — AI Chatbot & CSV Import | ✅ Completed | 2026-10-09 | 2026-10-09 |
-| 6 — Polish & Responsive Pass | ✅ Completed | 2026-10-09 | 2026-10-09 |
+| Phase | Domain | Status | Completed |
+|---|---|---|---|
+| Phase 1: Foundation & Scaffold | Backend + Frontend | ✅ Completed | 2026-10-09 |
+| Phase 2: Auth, Store Creation & Wizard | Backend + Frontend | ✅ Completed | 2026-10-09 |
+| Phase 3: Theme System, Storefront & Orders | Backend + Frontend | ✅ Completed | 2026-10-09 |
+| Phase 4: Admin Dashboard, Products & Settings | Backend + Frontend | ✅ Completed | 2026-10-09 |
+| Phase 5: AI Chatbot & CSV Import | Frontend (Mock/API Ready) | ✅ Completed | 2026-10-09 |
+| Phase 6: Polish & Responsive Pass | Frontend (Verified at 360/768/1280) | ✅ Completed | 2026-10-09 |
 
 ## Implemented Features (All 15 Hackathon Checkpoints)
 - **Checkpoint 1 (Onboarding Wizard):** 5-step wizard with Zod validation, auto draft saving to localStorage, logo preview.
@@ -30,9 +30,3 @@
 - **Checkpoint 13 (AI Store Assistant):** Floating chatbot panel with slide-out UI, read-only queries, data table rendering, and verified data provenance tags.
 - **Checkpoint 14 (Chatbot Honesty & Safety):** Strict non-hallucination rule; unsupported queries return "I don't have that data."
 - **Checkpoint 15 (Responsive Design):** Tested mobile-first layout with smooth transitions across 360px, 768px, and 1280px.
-
-## Local Dev Server
-- **URL:** `http://localhost:5173/`
-- **Storefront Demo:** `http://localhost:5173/s/craft-haven`
-- **Wizard:** `http://localhost:5173/onboarding`
-- **Merchant Admin:** `http://localhost:5173/admin/dashboard`
