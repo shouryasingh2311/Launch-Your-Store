@@ -1,7 +1,7 @@
 # STATE.md — Launch-Your-Store Backend
 
 ## Current Phase
-Phase 5 — CSV Import + Chatbot + AI Setup
+Phase 6 — Hardening + Isolation Tests + Seed Demo
 
 ## Phase Status
 | Phase | Name | Status |
@@ -10,7 +10,7 @@ Phase 5 — CSV Import + Chatbot + AI Setup
 | 2 | Auth + Store + Categories + Seed | ✅ completed |
 | 3 | Public Storefront + Orders + Product CRUD | ✅ completed |
 | 4 | Dashboard + Settings + Content | ✅ completed |
-| 5 | CSV Import + Chatbot + AI Setup | ⬜ not started |
+| 5 | CSV Import + Chatbot + AI Setup | ✅ completed |
 | 6 | Hardening + Isolation Tests + Seed Demo | ⬜ not started |
 | 7 | Docker + README + Final Deploy | ⬜ not started |
 

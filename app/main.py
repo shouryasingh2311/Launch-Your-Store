@@ -10,7 +10,7 @@ from app.config import settings
 from app.database import Base, engine, get_db
 # Import all models so Base.metadata knows about them
 import app.models  # noqa: F401
-from app.routers import auth, categories, dashboard, orders, products, public, stores, team
+from app.routers import ai, auth, categories, dashboard, imports, orders, products, public, stores, team
 
 
 @asynccontextmanager
@@ -52,6 +52,8 @@ app.include_router(public.router)
 app.include_router(orders.router)
 app.include_router(dashboard.router)
 app.include_router(team.router)
+app.include_router(imports.router)
+app.include_router(ai.router)
 
 
 
