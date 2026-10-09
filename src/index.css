@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: #4f46e5;
+    --radius: 8px;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Theme definitions for Storefront */
+.theme-minimal {
+  --store-bg: #ffffff;
+  --store-surface: #ffffff;
+  --store-text: #09090b;
+  --store-muted: #71717a;
+  --store-border: #e4e4e7;
+  --store-primary: #18181b;
+  --store-primary-contrast: #ffffff;
+  --store-radius: 4px;
+  font-family: 'Inter', sans-serif;
+}
+
+.theme-vibrant {
+  --store-bg: #fdf4ff;
+  --store-surface: #ffffff;
+  --store-text: #2e1065;
+  --store-muted: #701a75;
+  --store-border: #f5d0fe;
+  --store-primary: #d946ef;
+  --store-primary-contrast: #ffffff;
+  --store-radius: 16px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.theme-elegant {
+  --store-bg: #fbf9f5;
+  --store-surface: #ffffff;
+  --store-text: #1c1917;
+  --store-muted: #78716c;
+  --store-border: #e7e5e4;
+  --store-primary: #14532d;
+  --store-primary-contrast: #f0fdf4;
+  --store-radius: 8px;
+  font-family: 'Lato', sans-serif;
+}
+
+.theme-elegant h1,
+.theme-elegant h2,
+.theme-elegant h3,
+.theme-elegant .font-heading {
+  font-family: 'Playfair Display', serif;
+}
+
+.theme-midnight {
+  --store-bg: #090d16;
+  --store-surface: #111726;
+  --store-text: #f1f5f9;
+  --store-muted: #94a3b8;
+  --store-border: #1e293b;
+  --store-primary: #14b8a6;
+  --store-primary-contrast: #042f2e;
+  --store-radius: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
