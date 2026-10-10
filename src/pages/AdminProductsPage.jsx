@@ -13,12 +13,35 @@ import { api } from '../lib/api'
 import { Search, Plus, Trash2, Edit2, Check, AlertCircle, Filter } from 'lucide-react'
 
 export function AdminProductsPage() {
-  const { products, categories, addProduct, updateProduct, deleteProduct, updateStockInline, bulkUpdateStock } = useStoreData()
+  const { products, categories, addProduct, updateProduct, deleteProduct, updateStockInline, bulkUpdateStock, addCategory } = useStoreData()
   const toast = useToast()
 
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedIds, setSelectedIds] = useState([])
+
+  // Category addition modal state
+  const [isAddCatModalOpen, setIsAddCatModalOpen] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+
+  const handleCreateCategory = (e) => {
+    e?.preventDefault()
+    const trimmed = newCategoryName.trim()
+    if (!trimmed) {
+      toast.warning('Name Required', 'Please enter a category name.')
+      return
+    }
+    const existing = categories.find(c => c.name.toLowerCase() === trimmed.toLowerCase())
+    if (existing) {
+      toast.warning('Already Exists', `Category "${trimmed}" already exists.`)
+      return
+    }
+    const created = addCategory(trimmed)
+    toast.success('Category Added', `Category "${trimmed}" is now active in inventory.`)
+    setNewCategoryName('')
+    setIsAddCatModalOpen(false)
+    setFormData(prev => ({ ...prev, category_id: created.id }))
+  }
 
   // Drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -170,9 +193,14 @@ export function AdminProductsPage() {
             </p>
           </div>
 
-          <Button onClick={handleOpenAdd} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> Add Product
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setIsAddCatModalOpen(true)} variant="secondary" size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Add Category
+            </Button>
+            <Button onClick={handleOpenAdd} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Add Product
+            </Button>
+          </div>
         </div>
 
         {/* Filters & Bulk Actions Bar */}
@@ -360,9 +388,18 @@ export function AdminProductsPage() {
             />
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 block uppercase tracking-wide">
-                Category
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-700 block uppercase tracking-wide">
+                  Category
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsAddCatModalOpen(true)}
+                  className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="h-3 w-3" /> New Category
+                </button>
+              </div>
               <select
                 value={formData.category_id}
                 onChange={e => setFormData({ ...formData, category_id: e.target.value })}
@@ -433,6 +470,53 @@ export function AdminProductsPage() {
             </div>
           </form>
         </Drawer>
+
+        {/* Add Category Modal */}
+        {isAddCatModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
+              <div>
+                <h3 className="font-bold text-base text-slate-900">Add Inventory Category</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Create a new category to organize and filter products in your inventory.
+                </p>
+              </div>
+
+              <form onSubmit={handleCreateCategory} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">
+                    Category Name *
+                  </label>
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="e.g. Handmade Ceramics, Accessories"
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setIsAddCatModalOpen(false)
+                      setNewCategoryName('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm">
+                    Add Category
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
       </div>
     </AdminLayout>

@@ -600,16 +600,16 @@ export const DEMO_STORES = {
     name: 'StoreKraft Flagship',
     tagline: 'Curated Department Store for Modern Living',
     business_type: 'Multi-Category Department Store',
-    theme_id: 'emerald',
+    theme_id: 'midnight',
     theme_overrides: {
       colors: {
-        primary: '#064E3B',
-        primaryText: '#F8E7C9',
-        background: '#F8E7C9',
-        surface: '#FFF9EC',
-        text: '#4B5F57',
-        heading: '#064E3B',
-        border: '#E8D5AE'
+        primary: '#D97706',
+        primaryText: '#0F172A',
+        background: '#0F172A',
+        surface: '#1E293B',
+        text: '#94A3B8',
+        heading: '#FFFFFF',
+        border: '#334155'
       },
       fonts: { heading: 'Poppins', body: 'Inter' },
       button: { radius: 'rounded', position: 'hero', style: 'filled', text: 'Explore All Departments' }

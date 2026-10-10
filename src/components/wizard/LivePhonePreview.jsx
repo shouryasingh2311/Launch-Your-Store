@@ -85,8 +85,12 @@ export function LivePhonePreview({
     }
     if (headingFont) vars['--heading-font'] = `'${headingFont}', sans-serif`
     if (bodyFont) vars['--body-font'] = `'${bodyFont}', sans-serif`
+    if (bodyFont) vars.fontFamily = `'${bodyFont}', sans-serif`
+    else if (headingFont) vars.fontFamily = `'${headingFont}', sans-serif`
     return vars
   }, [ov, baseDefaults, headingFont, bodyFont])
+
+  const headingFontStyle = headingFont ? { fontFamily: `'${headingFont}', sans-serif` } : undefined
 
   const headerLogo = logoUrl ? (
     <img src={logoUrl} alt={storeName} className="h-6 max-w-[80px] object-contain rounded" />
@@ -95,7 +99,7 @@ export function LivePhonePreview({
       <div className="h-5 w-5 rounded-md bg-[var(--store-primary)] text-[var(--store-primary-contrast)] flex items-center justify-center font-black text-[9px]">
         {storeName ? storeName.charAt(0) : 'S'}
       </div>
-      <span className="font-bold text-[11px] text-[var(--store-heading)] truncate max-w-[80px]">
+      <span className="font-bold text-[11px] text-[var(--store-heading)] truncate max-w-[80px]" style={headingFontStyle}>
         {storeName || 'StoreKraft'}
       </span>
     </div>
@@ -209,7 +213,7 @@ export function LivePhonePreview({
                 minHeight: 88
               }}
             >
-              <p className="font-bold text-[11px] leading-tight text-[var(--store-primary-contrast)] drop-shadow-sm">
+              <p className="font-bold text-[11px] leading-tight text-[var(--store-primary-contrast)] drop-shadow-sm" style={headingFontStyle}>
                 {tagline || 'Shop our latest collection'}
               </p>
               {btnPosition === 'hero' && renderCtaButton('mt-1')}
@@ -248,7 +252,7 @@ export function LivePhonePreview({
                   <img src={p.img} alt={p.name} className="h-[60px] w-full object-cover" loading="lazy" />
                   <div className="p-1.5 space-y-0.5 flex-1 flex flex-col justify-between">
                     <div>
-                      <p className="text-[9px] font-semibold truncate text-[var(--store-text)]">{p.name}</p>
+                      <p className="text-[9px] font-semibold truncate text-[var(--store-text)]" style={headingFontStyle}>{p.name}</p>
                       <p className="text-[9px] font-bold text-[var(--store-primary)]">{p.price}</p>
                     </div>
                     {btnPosition === 'product' ? (
@@ -278,7 +282,7 @@ export function LivePhonePreview({
             </div>
             <img src={activeProducts[0].img} alt={activeProducts[0].name} className="w-full h-28 object-cover" />
             <div className="p-3 space-y-2 bg-[var(--store-surface)]">
-              <h2 className="font-bold text-xs text-[var(--store-heading)]">{activeProducts[0].name}</h2>
+              <h2 className="font-bold text-xs text-[var(--store-heading)]" style={headingFontStyle}>{activeProducts[0].name}</h2>
               <p className="text-[10px] text-[var(--store-text)] opacity-80">{activeProducts[0].desc}</p>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-[var(--store-primary)]">{activeProducts[0].price}</span>
@@ -297,12 +301,12 @@ export function LivePhonePreview({
         {/* ── CART page ── */}
         {previewPage === 'cart' && (
           <div className="flex-1 bg-[var(--store-bg)] p-3 space-y-3">
-            <h2 className="font-bold text-xs text-[var(--store-heading)]">Your Cart</h2>
+            <h2 className="font-bold text-xs text-[var(--store-heading)]" style={headingFontStyle}>Your Cart</h2>
             {cartItems.map((p, i) => (
               <div key={p.id || i} className="flex gap-2 items-center border-b border-[var(--store-border)] pb-2">
                 <img src={p.img} alt={p.name} className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] font-semibold truncate text-[var(--store-text)]">{p.name}</p>
+                  <p className="text-[9px] font-semibold truncate text-[var(--store-text)]" style={headingFontStyle}>{p.name}</p>
                   <p className="text-[9px] font-bold text-[var(--store-primary)]">{p.price}</p>
                 </div>
                 <span className="text-[9px] text-[var(--store-text)] opacity-70">×1</span>
