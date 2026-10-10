@@ -48,25 +48,27 @@ export function CountryCodeSelector({
   )
 
   return (
-    <div className={cn("relative", className)} ref={containerRef}>
+    <div className={cn("relative h-11", className)} ref={containerRef}>
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="clay-input flex items-center gap-2 px-3 py-2.5 text-sm min-h-[44px] bg-white border border-champagne-border rounded-xl hover:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all cursor-pointer"
+        className="clay-input w-full h-11 flex items-center justify-between gap-1.5 px-2.5 text-sm cursor-pointer hover:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <img
-          src={`https://flagcdn.com/w40/${selectedCountry.iso}.png`}
-          alt={selectedCountry.name}
-          className="w-5 h-3.5 object-cover rounded-[2px] shadow-xs flex-shrink-0"
-          loading="eager"
-        />
-        <span className="font-semibold text-xs text-[var(--sc-ink)]">
-          {selectedCountry.code}
+        <span className="flex items-center gap-1.5 min-w-0">
+          <img
+            src={`https://flagcdn.com/w40/${selectedCountry.iso}.png`}
+            alt={selectedCountry.name}
+            className="w-5 h-3.5 object-cover rounded-[2px] shadow-xs flex-shrink-0"
+            loading="eager"
+          />
+          <span className="font-semibold text-xs text-[var(--sc-ink)]">
+            {selectedCountry.code}
+          </span>
         </span>
-        <ChevronDown className="h-3.5 w-3.5 text-[var(--sc-muted)] ml-auto" />
+        <ChevronDown className="h-3.5 w-3.5 text-[var(--sc-muted)] flex-shrink-0 ml-0.5" />
       </button>
 
       {/* Dropdown Popover */}

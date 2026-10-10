@@ -821,29 +821,31 @@ export function WizardPage() {
                         />
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                          <Input
-                            label="Contact Email"
-                            type="email"
-                            placeholder="hello@yourstore.com"
-                            value={wizardData.contact_email}
-                            onChange={e => patchWizard({ contact_email: e.target.value })}
-                          />
-                          <div className="w-full space-y-1.5">
+                          <div className="min-w-0">
+                            <Input
+                              label="Contact Email"
+                              type="email"
+                              placeholder="hello@yourstore.com"
+                              value={wizardData.contact_email}
+                              onChange={e => patchWizard({ contact_email: e.target.value })}
+                            />
+                          </div>
+                          <div className="w-full space-y-1.5 min-w-0">
                             <label className="block text-xs font-semibold text-[var(--sc-ink)] tracking-wide uppercase">
                               Support Phone
                             </label>
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-2 w-full min-w-0">
                               <CountryCodeSelector
                                 value={wizardData.country_code || '+91'}
                                 onChange={code => patchWizard({ country_code: code })}
-                                className="w-[110px] flex-shrink-0"
+                                className="w-[96px] flex-shrink-0"
                               />
                               <input
                                 type="tel"
                                 placeholder="98765 43210"
                                 value={wizardData.phone || ''}
                                 onChange={e => patchWizard({ phone: e.target.value })}
-                                className="clay-input flex-1 px-3.5 py-2.5 text-sm text-[var(--sc-ink)] placeholder:text-[var(--sc-muted)] min-h-[44px]"
+                                className="clay-input flex-1 min-w-0 h-11 px-3.5 text-sm text-[var(--sc-ink)] placeholder:text-[var(--sc-muted)]"
                                 aria-label="Support phone number"
                               />
                             </div>

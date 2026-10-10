@@ -35,7 +35,7 @@ export const Input = React.forwardRef(({
           id={inputId}
           type={effectiveType}
           className={cn(
-            'clay-input w-full px-3.5 py-2.5 text-sm text-[var(--sc-ink)] placeholder:text-[var(--sc-muted)] min-h-[44px]',
+            'clay-input w-full h-11 px-3.5 text-sm text-[var(--sc-ink)] placeholder:text-[var(--sc-muted)]',
             'disabled:cursor-not-allowed disabled:opacity-50',
             Icon && 'pl-9',
             isPassword && 'pr-11',
