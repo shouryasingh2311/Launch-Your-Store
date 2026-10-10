@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, ExternalLink, LogOut } from 'lucide-react'
 import { Button } from '../components/ui/Button'
+import { SpecularButton } from '../components/ui/SpecularButton'
+import { ScrollExpand } from '../components/ui/ScrollExpand'
 import { useAuthStore } from '../store/useAuthStore'
 import { DEMO_WINDOWS } from '../components/storefront/DemoShowcaseModal'
 import { DEMO_STORE_PRODUCTS, INITIAL_PRODUCTS } from '../lib/mockData'
@@ -37,6 +39,34 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-between" style={{ background: 'var(--sc-champagne)' }}>
+
+      {/* ── ScrollExpand Opening Transition: "Built to scale" -> Main Website ── */}
+      <ScrollExpand
+        src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=85"
+        alt="StoreKraft Store Builder"
+        title="Built to scale"
+        scrollHint="Scroll to enter"
+        useWindowScroll={true}
+        startWidth={44}
+        startHeight={56}
+        startRadius={24}
+        endRadius={0}
+        mediaZoom={1.25}
+        scrollDistance={0.9}
+        holdDistance={0.2}
+      >
+        <div className="max-w-xl text-center space-y-3 px-6">
+          <span className="text-xs uppercase tracking-widest font-extrabold text-amber-300 drop-shadow-sm">
+            StoreKraft Studio
+          </span>
+          <h2 className="font-poppins font-black text-2xl sm:text-4xl text-white drop-shadow-lg">
+            Commerce Without Limits
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-200 drop-shadow">
+            Scroll down to enter your store builder workspace
+          </p>
+        </div>
+      </ScrollExpand>
 
       {/* ── Header ────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-champagne-card/90 backdrop-blur-md border-b border-champagne-border">
@@ -97,11 +127,31 @@ export function LandingPage() {
               </p>
             </div>
 
-            {/* Primary Action Button */}
+            {/* Primary Action Button: Specular Animated Button */}
             <div className="pt-2">
-              <Button size="lg" onClick={handleMakeYourOwnClick} className="font-bold text-sm px-8 h-12 shadow-clay-btn">
-                Make your own <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+              <SpecularButton
+                size="lg"
+                radius={16}
+                tint="#064E3B"
+                tintOpacity={0.96}
+                textColor="#F8E7C9"
+                lineColor="#F59E0B"
+                baseColor="#042F2E"
+                intensity={1.25}
+                shineSize={12}
+                shineFade={36}
+                thickness={1.5}
+                followMouse={true}
+                autoAnimate={true}
+                speed={0.4}
+                proximity={300}
+                onClick={handleMakeYourOwnClick}
+                className="font-bold text-sm shadow-clay-btn group"
+              >
+                <span className="flex items-center gap-2 font-poppins font-bold">
+                  Make your own <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </span>
+              </SpecularButton>
             </div>
           </div>
 

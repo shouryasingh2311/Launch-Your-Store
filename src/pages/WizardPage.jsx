@@ -14,6 +14,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { useToast } from '../components/ui/Toast'
+import { LatticeLoader } from '../components/ui/LatticeLoader'
 import { PREDEFINED_CATEGORIES, THEMES_METADATA, DEMO_STORE_PRODUCTS } from '../lib/mockData'
 import { analyzeStorePrompt } from '../lib/aiStoreAnalyzer'
 import { LivePhonePreview } from '../components/wizard/LivePhonePreview'
@@ -185,6 +186,7 @@ export function WizardPage() {
   // ── Step 1: AI Chat Discovery ────────────────────────
   const [aiPrompt, setAiPrompt] = useState('')
   const [isAiLoading, setIsAiLoading] = useState(false)
+  const [aiStatus, setAiStatus] = useState('working') // 'working' | 'done' | 'error'
   const [chatMessages, setChatMessages] = useState([
     {
       sender: 'ai',
@@ -241,6 +243,7 @@ export function WizardPage() {
     }
 
     setIsAiLoading(true)
+    setAiStatus('working')
 
     // Add user message to thread
     setChatMessages(prev => [...prev, { sender: 'user', text: textToAnalyze }])
@@ -266,6 +269,8 @@ export function WizardPage() {
       }
 
       if (!analysisResult) {
+        // Subtle realistic synthesis delay so user sees orbital wave and stopwatch
+        await new Promise(r => setTimeout(r, 700))
         analysisResult = analyzeStorePrompt(textToAnalyze)
       }
 
@@ -299,6 +304,10 @@ export function WizardPage() {
         })
       }
 
+      // Show checkmark mark transition on LatticeLoader
+      setAiStatus('done')
+      await new Promise(r => setTimeout(r, 800))
+
       // Add AI reply to chat thread
       setChatMessages(prev => [
         ...prev,
@@ -310,9 +319,12 @@ export function WizardPage() {
 
       toast.success('Store Generated', `Configured "${finalName}".`)
     } catch (err) {
+      setAiStatus('error')
+      await new Promise(r => setTimeout(r, 1000))
       toast.error('Analysis error', err.message)
     } finally {
       setIsAiLoading(false)
+      setAiStatus('working')
     }
   }
 
@@ -738,8 +750,26 @@ export function WizardPage() {
                           </div>
                         ))}
                         {isAiLoading && (
-                          <div className="p-2.5 rounded-xl bg-white border border-champagne-border text-brand text-xs font-medium animate-pulse">
-                            Analyzing concepts and synthesizing tailored store profile…
+                          <div className="p-3 rounded-xl bg-white border border-champagne-border text-[var(--sc-ink)] shadow-2xs">
+                            <LatticeLoader
+                              status={aiStatus}
+                              label="Architecting store concept"
+                              doneLabel="Brand synthesized in"
+                              errorLabel="Analysis failed after"
+                              pattern="orbit"
+                              grid={3}
+                              shape="round"
+                              color="#064E3B"
+                              doneColor="#059669"
+                              errorColor="#dc2626"
+                              cellSize={6}
+                              gap={2.5}
+                              fontSize={12}
+                              step={90}
+                              glow={true}
+                              glowColor="rgba(5, 150, 105, 0.3)"
+                              showTimer={true}
+                            />
                           </div>
                         )}
                       </div>

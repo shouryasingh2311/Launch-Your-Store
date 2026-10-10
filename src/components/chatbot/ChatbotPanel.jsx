@@ -3,12 +3,15 @@ import { Bot, X, Sparkles, Send, Database, ArrowRight, CornerDownLeft } from 'lu
 import { executeChatbotQuery } from '../../lib/mockData'
 import { useStoreData } from '../../store/useStoreData'
 import { api } from '../../lib/api'
+import { LatticeLoader } from '../ui/LatticeLoader'
 
 export function ChatbotPanel() {
   const [isOpen, setIsOpen] = useState(false)
   const { products, orders } = useStoreData()
 
   const [inputMessage, setInputMessage] = useState('')
+  const [isThinking, setIsThinking] = useState(false)
+  const [thinkStatus, setThinkStatus] = useState('working')
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
@@ -28,7 +31,7 @@ export function ChatbotPanel() {
 
   const handleSendMessage = async (textToSend) => {
     const q = textToSend || inputMessage
-    if (!q.trim()) return
+    if (!q.trim() || isThinking) return
 
     const userMsg = {
       id: `usr-${Date.now()}`,
@@ -38,11 +41,15 @@ export function ChatbotPanel() {
 
     setMessages(prev => [...prev, userMsg])
     setInputMessage('')
+    setIsThinking(true)
+    setThinkStatus('working')
 
     // 1. Try real Gemini / Groq dual failover backend AI service
     try {
       const aiRes = await api.askAI(q)
       if (aiRes && aiRes.answer) {
+        setThinkStatus('done')
+        await new Promise(r => setTimeout(r, 600))
         const botMsg = {
           id: `bot-${Date.now()}`,
           sender: 'bot',
@@ -52,6 +59,8 @@ export function ChatbotPanel() {
           params: aiRes.params
         }
         setMessages(prev => [...prev, botMsg])
+        setIsThinking(false)
+        setThinkStatus('working')
         return
       }
     } catch (err) {
@@ -59,18 +68,28 @@ export function ChatbotPanel() {
     }
 
     // 2. Deterministic local tool query fallback
-    setTimeout(() => {
-      const response = executeChatbotQuery(q, products, orders)
-      const botMsg = {
-        id: `bot-${Date.now()}`,
-        sender: 'bot',
-        text: response.answer,
-        table: response.table,
-        tool: response.tool,
-        params: response.params
+    setTimeout(async () => {
+      try {
+        const response = executeChatbotQuery(q, products, orders)
+        setThinkStatus('done')
+        await new Promise(r => setTimeout(r, 600))
+        const botMsg = {
+          id: `bot-${Date.now()}`,
+          sender: 'bot',
+          text: response.answer,
+          table: response.table,
+          tool: response.tool,
+          params: response.params
+        }
+        setMessages(prev => [...prev, botMsg])
+      } catch (err) {
+        setThinkStatus('error')
+        await new Promise(r => setTimeout(r, 800))
+      } finally {
+        setIsThinking(false)
+        setThinkStatus('working')
       }
-      setMessages(prev => [...prev, botMsg])
-    }, 300)
+    }, 500)
   }
 
   return (
@@ -168,6 +187,32 @@ export function ChatbotPanel() {
                 </div>
               </div>
             ))}
+
+            {/* AI Assistant Thinking Indicator */}
+            {isThinking && (
+              <div className="flex flex-col items-start animate-in fade-in duration-150">
+                <div className="max-w-[90%] rounded-2xl p-3 bg-slate-100 text-slate-800 rounded-bl-xs border border-slate-200/80 shadow-2xs">
+                  <LatticeLoader
+                    status={thinkStatus}
+                    label="Querying store intelligence"
+                    doneLabel="Insight generated in"
+                    errorLabel="Query failed after"
+                    pattern="orbit"
+                    grid={3}
+                    shape="round"
+                    color="#4F46E5"
+                    doneColor="#16A34A"
+                    errorColor="#EF4444"
+                    cellSize={5.5}
+                    gap={2}
+                    fontSize={12}
+                    glow={true}
+                    glowColor="rgba(79, 70, 229, 0.25)"
+                    showTimer={true}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Quick Suggested Chips (Guaranteed zero-hallucination tools) */}
@@ -180,7 +225,8 @@ export function ChatbotPanel() {
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(chip)}
-                  className="text-[11px] px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-600 transition-colors shadow-2xs"
+                  disabled={isThinking}
+                  className="text-[11px] px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-50 transition-colors shadow-2xs"
                 >
                   {chip}
                 </button>
@@ -201,12 +247,14 @@ export function ChatbotPanel() {
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Ask about revenue, orders, low stock..."
-                className="flex-1 rounded-xl border border-slate-200 px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                disabled={isThinking}
+                placeholder={isThinking ? "AI Assistant is thinking..." : "Ask about revenue, orders, low stock..."}
+                className="flex-1 rounded-xl border border-slate-200 px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 disabled:bg-slate-50"
               />
               <button
                 type="submit"
-                className="p-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shrink-0"
+                disabled={isThinking || !inputMessage.trim()}
+                className="p-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shrink-0"
               >
                 <Send className="h-4 w-4" />
               </button>
