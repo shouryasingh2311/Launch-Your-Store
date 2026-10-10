@@ -11,9 +11,34 @@ import { CartDrawer } from '../components/storefront/CartDrawer'
 import { CheckoutModal } from '../components/storefront/CheckoutModal'
 import { EmptyState } from '../components/ui/EmptyState'
 import { SlidersHorizontal, ArrowUpDown } from 'lucide-react'
+import { FashionStorefront } from '../components/storefront/demos/FashionStorefront'
+import { ElectronicsStorefront } from '../components/storefront/demos/ElectronicsStorefront'
+import { DecorStorefront } from '../components/storefront/demos/DecorStorefront'
+import { FlagshipStorefront } from '../components/storefront/demos/FlagshipStorefront'
 
 export function StorefrontPage() {
   const { slug } = useParams()
+
+  // 1. Fashion & Haute Couture Storefront
+  if (slug === 'demo-fashion' || slug === 'atelier-noir') {
+    return <FashionStorefront />
+  }
+
+  // 2. Pro Audio & Electronics Storefront
+  if (slug === 'demo-electronics' || slug === 'pulse-tech') {
+    return <ElectronicsStorefront />
+  }
+
+  // 3. Handcrafted Pottery & Home Decor Storefront
+  if (slug === 'demo-decor' || slug === 'terra-living') {
+    return <DecorStorefront />
+  }
+
+  // 4. All-in-1 Curated Flagship Storefront
+  if (slug === 'craft-haven' || slug === 'demo-flagship') {
+    return <FlagshipStorefront />
+  }
+
   const { getStoreData } = useStoreData()
 
   // Multi-tenant Store Isolation: Fetch the specific store bundle (custom or demo)

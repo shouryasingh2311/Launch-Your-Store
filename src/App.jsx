@@ -11,6 +11,7 @@ import { AdminProductsPage } from './pages/AdminProductsPage'
 import { AdminOrdersPage } from './pages/AdminOrdersPage'
 import { AdminSettingsPage } from './pages/AdminSettingsPage'
 import { PlatformOwnerDashboardPage } from './pages/PlatformOwnerDashboardPage'
+import { DemoHubPage } from './pages/DemoHubPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
 export function App() {
@@ -22,6 +23,9 @@ export function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+
+          {/* 4 Separate Demo Windows Showcase Hub */}
+          <Route path="/demos" element={<DemoHubPage />} />
 
           {/* 5-Step Storefront Setup Wizard */}
           <Route path="/onboarding" element={<WizardPage />} />
