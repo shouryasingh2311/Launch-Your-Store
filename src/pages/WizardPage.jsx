@@ -20,7 +20,25 @@ import { useStoreData } from '../store/useStoreData'
 import { useAuthStore } from '../store/useAuthStore'
 import { api } from '../lib/api'
 import confetti from 'canvas-confetti'
-import { cn } from '../lib/utils'
+import { cn, CURRENCY_CONFIG, formatCurrency } from '../lib/utils'
+
+const COUNTRY_CODES = [
+  { code: '+91', country: 'India', flag: '🇮🇳' },
+  { code: '+1', country: 'United States / Canada', flag: '🇺🇸' },
+  { code: '+44', country: 'United Kingdom', flag: '🇬🇧' },
+  { code: '+971', country: 'United Arab Emirates', flag: '🇦🇪' },
+  { code: '+61', country: 'Australia', flag: '🇦🇺' },
+  { code: '+65', country: 'Singapore', flag: '🇸🇬' },
+  { code: '+49', country: 'Germany', flag: '🇩🇪' },
+  { code: '+33', country: 'France', flag: '🇫🇷' },
+  { code: '+81', country: 'Japan', flag: '🇯🇵' },
+  { code: '+86', country: 'China', flag: '🇨🇳' },
+  { code: '+966', country: 'Saudi Arabia', flag: '🇸🇦' },
+  { code: '+60', country: 'Malaysia', flag: '🇲🇾' },
+  { code: '+62', country: 'Indonesia', flag: '🇮🇩' },
+  { code: '+55', country: 'Brazil', flag: '🇧🇷' },
+  { code: '+27', country: 'South Africa', flag: '🇿🇦' }
+]
 
 const QUICK_SUGGESTIONS = [
   'Minimalist Ceramic & Pottery Studio',
@@ -151,7 +169,7 @@ export function WizardPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
-  const { updateStore, importDummyProducts, addProduct } = useStoreData()
+  const { updateStore, importDummyProducts, addProduct, setProducts, setCategories, products } = useStoreData()
   const { user, isAuthenticated } = useAuthStore()
 
   // Authentication gate: enforce login/signup before store setup
@@ -189,9 +207,11 @@ export function WizardPage() {
       tagline: '',
       business_type: '',
       contact_email: '',
+      country_code: '+91',
       phone: '',
       address: '',
       logo_url: '',
+      currency: 'INR',
       categories: ['Featured Collection', 'Best Sellers'],
       theme_id: 'emerald',
       theme_overrides: defaultOverrides(),
@@ -333,9 +353,10 @@ export function WizardPage() {
     setIsImporting(true)
     setTimeout(() => {
       const count = importDummyProducts()
+      setWizardProducts([...products])
       patchWizard({ importedProductsCount: count })
       setIsImporting(false)
-      toast.success('Catalog Seeded', `${count} products added with INR pricing.`)
+      toast.success('Catalog Seeded', `${count} products added.`)
     }, 400)
   }
 
@@ -383,7 +404,7 @@ export function WizardPage() {
             continue
           }
           if (price <= 0) {
-            rowErrors.push({ row: i, field: 'price', problem: `Invalid price "${rowObj.price}"`, fix: 'Set default ₹499' })
+            rowErrors.push({ row: i, field: 'price', problem: `Invalid price "${rowObj.price}"`, fix: 'Set default 499' })
           }
 
           validRows.push({
@@ -398,8 +419,9 @@ export function WizardPage() {
           })
         }
 
-        // Add valid products to store
+        // Add valid products to store and wizard state
         validRows.forEach(item => addProduct(item))
+        setWizardProducts(prev => [...validRows, ...prev])
         patchWizard({ importedProductsCount: (wizardData.importedProductsCount || 0) + validRows.length })
 
         setCsvStats({ total: lines.length - 1, valid: validRows.length, errors: rowErrors.length })
@@ -418,8 +440,10 @@ export function WizardPage() {
   const [showManualModal, setShowManualModal] = useState(false)
   const [manualTitle, setManualTitle] = useState('')
   const [manualPrice, setManualPrice] = useState('')
+  const [manualPriceFormatted, setManualPriceFormatted] = useState('')
   const [manualDesc, setManualDesc] = useState('')
   const [manualImage, setManualImage] = useState('')
+  const [wizardProducts, setWizardProducts] = useState([])
 
   const handleSaveManualProduct = (e) => {
     e.preventDefault()
@@ -441,6 +465,7 @@ export function WizardPage() {
       is_active: true
     }
 
+    setWizardProducts(prev => [newProd, ...prev])
     addProduct(newProd)
     patchWizard({ importedProductsCount: (wizardData.importedProductsCount || 0) + 1 })
     toast.success('Product Added', `"${manualTitle}" added to catalog.`)
@@ -448,9 +473,15 @@ export function WizardPage() {
     // Reset modal
     setManualTitle('')
     setManualPrice('')
+    setManualPriceFormatted('')
     setManualDesc('')
     setManualImage('')
     setShowManualModal(false)
+  }
+
+  const handleDeleteWizardProduct = (prodId) => {
+    setWizardProducts(prev => prev.filter(p => p.id !== prodId))
+    toast.info('Item Removed', 'Product removed from catalog.')
   }
 
   // ── Step 4: Theme Controls & Live Preview ────────────
@@ -482,17 +513,35 @@ export function WizardPage() {
   // ── Step 5: Launch Store ──────────────────────────────
   const [isLaunched, setIsLaunched] = useState(false)
   const handleLaunchStore = () => {
+    // 1. If user catalogued products in wizard, use ONLY those products
+    const finalProducts = wizardProducts.length > 0 ? wizardProducts : products
+
+    // 2. Filter categories to ONLY those selected in wizard
+    const finalCategories = (wizardData.categories || []).map((catName, idx) => ({
+      id: `cat-wiz-${idx}`,
+      name: catName,
+      slug: catName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    }))
+
+    setProducts(finalProducts)
+    setCategories(finalCategories)
+
+    const fullPhone = `${wizardData.country_code || '+91'} ${wizardData.phone || ''}`.trim()
+    const activeCurrency = wizardData.currency || 'INR'
+
     updateStore({
       name: wizardData.name || 'StoreKraft Store',
       slug: wizardData.slug || 'storekraft-store',
       tagline: wizardData.tagline,
       business_type: wizardData.business_type,
       contact_email: wizardData.contact_email,
-      phone: wizardData.phone,
+      phone: fullPhone,
       address: wizardData.address,
       logo_url: wizardData.logo_url,
       theme_id: wizardData.theme_id,
-      theme_overrides: wizardData.theme_overrides
+      theme_overrides: wizardData.theme_overrides,
+      currency: activeCurrency,
+      currency_symbol: CURRENCY_CONFIG[activeCurrency]?.symbol || '₹'
     })
     setIsLaunched(true)
     localStorage.removeItem('sk_wizard_draft')
@@ -761,12 +810,36 @@ export function WizardPage() {
                             value={wizardData.contact_email}
                             onChange={e => patchWizard({ contact_email: e.target.value })}
                           />
-                          <Input
-                            label="Support Phone"
-                            placeholder="+91 98765 43210"
-                            value={wizardData.phone}
-                            onChange={e => patchWizard({ phone: e.target.value })}
-                          />
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-[var(--sc-ink)]">
+                              Support Phone
+                            </label>
+                            <div className="flex gap-2">
+                              <div className="relative min-w-[115px] flex-shrink-0">
+                                <select
+                                  value={wizardData.country_code || '+91'}
+                                  onChange={e => patchWizard({ country_code: e.target.value })}
+                                  className="clay-input w-full pl-2.5 pr-7 py-2 text-xs appearance-none bg-white font-medium min-h-[42px]"
+                                  aria-label="Select Country Code"
+                                >
+                                  {COUNTRY_CODES.map(c => (
+                                    <option key={c.code} value={c.code}>
+                                      {c.flag} {c.code}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="h-3.5 w-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--sc-muted)]" />
+                              </div>
+                              <input
+                                type="tel"
+                                placeholder="98765 43210"
+                                value={wizardData.phone || ''}
+                                onChange={e => patchWizard({ phone: e.target.value })}
+                                className="clay-input flex-1 px-3 py-2 text-xs min-h-[42px]"
+                                aria-label="Support phone number"
+                              />
+                            </div>
+                          </div>
                         </div>
 
                         <Input
@@ -918,7 +991,7 @@ export function WizardPage() {
                         <Badge variant="success" size="sm" className="mb-2">Custom Item</Badge>
                         <h3 className="text-sm font-bold text-brand">Manual Cataloguing</h3>
                         <p className="text-xs text-[var(--sc-muted)] mt-1">
-                          Add custom product image, INR price, and description directly.
+                          Add custom product image, currency, formatted price, and description directly.
                         </p>
                       </div>
                       <Button
@@ -955,6 +1028,50 @@ export function WizardPage() {
                       )}
                     </div>
                   )}
+
+                  {/* Manual Products Added List */}
+                  {wizardProducts.length > 0 && (
+                    <div className="pt-4 border-t border-champagne-border space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-brand uppercase tracking-wide">
+                          Catalogued Products ({wizardProducts.length})
+                        </span>
+                        <span className="text-[11px] text-[var(--sc-muted)]">
+                          These will be published to your store
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {wizardProducts.map((p) => (
+                          <div
+                            key={p.id}
+                            className="p-2.5 rounded-xl border border-champagne-border bg-white flex items-center justify-between gap-3 shadow-2xs"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <img
+                                src={p.image_url || p.images?.[0] || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=100&q=80'}
+                                alt={p.name}
+                                className="h-10 w-10 rounded-lg object-cover flex-shrink-0 border border-champagne-border"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-brand truncate">{p.name}</p>
+                                <p className="text-[11px] font-semibold text-[var(--sc-muted)]">
+                                  {formatCurrency(p.price, wizardData.currency || 'INR')}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteWizardProduct(p.id)}
+                              className="text-xs text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                              title="Delete Product"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </Card>
 
                 {/* Manual Cataloguing Modal */}
@@ -983,6 +1100,27 @@ export function WizardPage() {
                           placeholder="e.g. Handcrafted Ceramic Mug"
                         />
 
+                        {/* Currency Option */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-[var(--sc-ink)] uppercase tracking-wide">
+                            Currency
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={wizardData.currency || 'INR'}
+                              onChange={e => patchWizard({ currency: e.target.value })}
+                              className="clay-input w-full px-3 py-2 text-xs bg-white font-medium appearance-none pr-8 min-h-[42px]"
+                            >
+                              {Object.entries(CURRENCY_CONFIG).map(([currKey, conf]) => (
+                                <option key={currKey} value={currKey}>
+                                  {conf.name}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="h-3.5 w-3.5 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--sc-muted)]" />
+                          </div>
+                        </div>
+
                         {/* 1. Product Image */}
                         <ImageUploadControl
                           label="1. Product Image"
@@ -990,15 +1128,46 @@ export function WizardPage() {
                           onChange={setManualImage}
                         />
 
-                        {/* 2. Price */}
-                        <Input
-                          label="2. Price (INR ₹) *"
-                          type="number"
-                          required
-                          value={manualPrice}
-                          onChange={e => setManualPrice(e.target.value)}
-                          placeholder="e.g. 1299"
-                        />
+                        {/* 2. Price with Auto Comma Place-Value Separation */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-[var(--sc-ink)] uppercase tracking-wide">
+                            2. Price ({CURRENCY_CONFIG[wizardData.currency || 'INR']?.symbol || '₹'}) *
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-brand pointer-events-none">
+                              {CURRENCY_CONFIG[wizardData.currency || 'INR']?.symbol || '₹'}
+                            </span>
+                            <input
+                              type="text"
+                              required
+                              value={manualPriceFormatted}
+                              onChange={e => {
+                                const raw = e.target.value.replace(/[^0-9.]/g, '')
+                                setManualPrice(raw)
+                                if (raw) {
+                                  const parts = raw.split('.')
+                                  const whole = parts[0]
+                                  const decimal = parts.length > 1 ? '.' + parts[1].slice(0, 2) : ''
+                                  const num = parseFloat(whole)
+                                  if (!isNaN(num)) {
+                                    const locale = CURRENCY_CONFIG[wizardData.currency || 'INR']?.locale || 'en-IN'
+                                    const formattedWhole = new Intl.NumberFormat(locale).format(num)
+                                    setManualPriceFormatted(formattedWhole + decimal)
+                                  } else {
+                                    setManualPriceFormatted(raw)
+                                  }
+                                } else {
+                                  setManualPriceFormatted('')
+                                }
+                              }}
+                              placeholder="e.g. 1,299"
+                              className="clay-input w-full pl-8 pr-3 py-2 text-xs font-mono min-h-[42px]"
+                            />
+                          </div>
+                          <p className="text-[10px] text-[var(--sc-muted)]">
+                            Auto comma separated for {CURRENCY_CONFIG[wizardData.currency || 'INR']?.code} place values.
+                          </p>
+                        </div>
 
                         {/* 3. Description */}
                         <div className="space-y-1.5">
@@ -1258,6 +1427,8 @@ export function WizardPage() {
                       themeOverrides={wizardData.theme_overrides}
                       previewPage={previewPage}
                       logoUrl={wizardData.logo_url}
+                      products={wizardProducts}
+                      currency={wizardData.currency || 'INR'}
                     />
 
                     <p className="text-[10px] text-[var(--sc-muted)] text-center max-w-[280px]">

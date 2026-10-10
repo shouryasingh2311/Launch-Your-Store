@@ -4,7 +4,7 @@ import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { useAuthStore } from '../store/useAuthStore'
 import { useToast } from '../components/ui/Toast'
-import { ArrowRight, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Store, Globe, UserCheck } from 'lucide-react'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -13,10 +13,12 @@ export function LoginPage() {
   const toast = useToast()
 
   const searchParams = new URLSearchParams(location.search)
-  const redirectTarget = searchParams.get('redirect') || '/admin/dashboard'
+  const redirectTarget = searchParams.get('redirect')
 
-  const [identifier, setIdentifier] = useState('admin')
-  const [password, setPassword] = useState('admin')
+  // Two portal options: 'merchant' (User portal) vs 'owner' (Platform owner admin)
+  const [portalType, setPortalType] = useState('merchant')
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -24,10 +26,16 @@ export function LoginPage() {
     setIsLoading(true)
     try {
       const res = await login(identifier, password)
-      toast.success('Welcome back', `Signed in as ${res.user?.role?.toUpperCase() || 'MERCHANT'}`)
-      navigate(redirectTarget)
+      
+      if (portalType === 'owner') {
+        toast.success('Platform Owner Sign In', 'Welcome to the StoreKraft Platform Management Suite')
+        navigate(redirectTarget || '/owner/dashboard')
+      } else {
+        toast.success('Merchant Sign In', `Welcome back, ${res.user?.name || 'Store Merchant'}`)
+        navigate(redirectTarget || '/admin/dashboard')
+      }
     } catch (err) {
-      toast.error('Sign In Failed', err.message || 'Invalid credentials.')
+      toast.error('Sign In Failed', err.message || 'Invalid username or password. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -46,20 +54,56 @@ export function LoginPage() {
           </Link>
           <div>
             <h1 className="font-poppins font-bold text-2xl text-brand">StoreKraft Sign In</h1>
-            <p className="text-xs text-[var(--sc-muted)] mt-1">Access your store analytics and operations</p>
+            <p className="text-xs text-[var(--sc-muted)] mt-1">Select your access portal to proceed</p>
           </div>
         </div>
 
-        {/* Demo Credentials Hint */}
-        <div className="p-3 rounded-xl bg-brand/10 border border-brand/20 text-xs text-brand space-y-1">
-          <div className="font-semibold flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4" />
-            Default Admin Credentials:
-          </div>
-          <div className="font-mono text-[11px] text-[var(--sc-muted)]">
-            Username: <strong className="text-brand">admin</strong> &nbsp;|&nbsp; Password: <strong className="text-brand">admin</strong>
-          </div>
+        {/* 2 Portal Options: Platform Owner vs Store Merchant (User Portal) */}
+        <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-brand/5 border border-champagne-border">
+          <button
+            type="button"
+            onClick={() => setPortalType('merchant')}
+            className={`flex flex-col items-center justify-center py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
+              portalType === 'merchant'
+                ? 'bg-brand text-champagne shadow-clay-btn'
+                : 'text-[var(--sc-muted)] hover:text-brand hover:bg-white/50'
+            }`}
+          >
+            <Store className="h-4 w-4 mb-1" />
+            <span>Store Merchant</span>
+            <span className={`text-[10px] font-normal opacity-80 ${portalType === 'merchant' ? 'text-champagne' : 'text-[var(--sc-muted)]'}`}>
+              User Portal
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPortalType('owner')}
+            className={`flex flex-col items-center justify-center py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
+              portalType === 'owner'
+                ? 'bg-brand text-champagne shadow-clay-btn'
+                : 'text-[var(--sc-muted)] hover:text-brand hover:bg-white/50'
+            }`}
+          >
+            <Globe className="h-4 w-4 mb-1" />
+            <span>Platform Owner</span>
+            <span className={`text-[10px] font-normal opacity-80 ${portalType === 'owner' ? 'text-champagne' : 'text-[var(--sc-muted)]'}`}>
+              Website Analytics
+            </span>
+          </button>
         </div>
+
+        {portalType === 'owner' ? (
+          <div className="p-3 rounded-xl bg-champagne-surface border border-champagne-border text-[11px] text-[var(--sc-muted)] leading-relaxed">
+            <strong className="text-brand font-semibold block mb-0.5">Platform Owner Portal</strong>
+            Inspect platform-wide statistics, live stores created, niche distribution pie charts, and merchant business details.
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-champagne-surface border border-champagne-border text-[11px] text-[var(--sc-muted)] leading-relaxed">
+            <strong className="text-brand font-semibold block mb-0.5">Store Merchant (User Portal)</strong>
+            Manage your store orders, live product catalogue, pricing, and daily revenue metrics.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
@@ -68,7 +112,7 @@ export function LoginPage() {
             required
             value={identifier}
             onChange={e => setIdentifier(e.target.value)}
-            placeholder="admin or user@storekraft.com"
+            placeholder="Enter your username or email"
           />
           <Input
             label="Password"
@@ -76,19 +120,19 @@ export function LoginPage() {
             required
             value={password}
             onChange={e => setPassword(e.target.value)}
-            placeholder="admin"
+            placeholder="Enter your password"
           />
 
           <Button type="submit" isLoading={isLoading} className="w-full font-bold">
-            Sign In <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            {portalType === 'owner' ? 'Sign In as Platform Owner' : 'Sign In to Store Portal'} <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Button>
         </form>
 
         <div className="text-center text-xs text-[var(--sc-muted)] border-t border-champagne-border pt-4 space-y-1">
           <p>
-            Need a merchant account?{' '}
-            <Link to={`/signup?redirect=${encodeURIComponent(redirectTarget)}`} className="font-semibold text-brand hover:underline">
-              Create account
+            Need a new store account?{' '}
+            <Link to="/onboarding" className="font-semibold text-brand hover:underline">
+              Create a store
             </Link>
           </p>
           <p>

@@ -10,6 +10,7 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminProductsPage } from './pages/AdminProductsPage'
 import { AdminOrdersPage } from './pages/AdminOrdersPage'
 import { AdminSettingsPage } from './pages/AdminSettingsPage'
+import { PlatformOwnerDashboardPage } from './pages/PlatformOwnerDashboardPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
 export function App() {
@@ -33,6 +34,9 @@ export function App() {
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />
+
+          {/* Platform Owner Dashboard */}
+          <Route path="/owner/dashboard" element={<PlatformOwnerDashboardPage />} />
 
           {/* Fallback 404 */}
           <Route path="/404" element={<NotFoundPage />} />

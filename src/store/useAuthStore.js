@@ -117,7 +117,7 @@ export const useAuthStore = create(
           return { success: true, user: activeUser }
         }
 
-        throw new Error('Invalid credentials. For Admin, use username "admin" and password "admin".')
+        throw new Error('Invalid username or password. Please check your credentials and try again.')
       },
 
       /**

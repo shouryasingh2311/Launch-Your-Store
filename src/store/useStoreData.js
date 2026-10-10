@@ -107,6 +107,14 @@ export const useStoreData = create(
         }))
       },
 
+      setCategories: (newCategories) => {
+        set({ categories: Array.isArray(newCategories) ? newCategories : [] })
+      },
+
+      setProducts: (newProducts) => {
+        set({ products: Array.isArray(newProducts) ? newProducts : [] })
+      },
+
       // Category actions
       addCategory: (name, emoji = '') => {
         const slug = name.toLowerCase().replace(/\s+/g, '-')

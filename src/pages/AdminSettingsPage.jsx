@@ -71,7 +71,7 @@ function LogoUpload({ value, onChange }) {
 }
 
 export function AdminSettingsPage() {
-  const { store, updateStore, setTheme, team, inviteTeamMember, removeTeamMember } = useStoreData()
+  const { store, updateStore, setTheme, team, inviteTeamMember, removeTeamMember, products } = useStoreData()
   const { user } = useAuthStore()
   const toast = useToast()
 
@@ -288,6 +288,8 @@ export function AdminSettingsPage() {
                 themeOverrides={store?.theme_overrides || {}}
                 previewPage={previewPage}
                 logoUrl={store?.logo_url || brandingForm.logo_url}
+                products={products}
+                currency={store?.currency || 'INR'}
               />
             </div>
           </div>

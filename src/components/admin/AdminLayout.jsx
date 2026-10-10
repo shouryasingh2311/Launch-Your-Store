@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, Store, LogOut, ShieldAlert, KeyRound } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, Settings, ExternalLink, Store, LogOut, ShieldAlert, KeyRound, Globe } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useStoreData } from '../../store/useStoreData'
 import { useToast } from '../ui/Toast'
@@ -124,6 +124,18 @@ export function AdminLayout({ children }) {
               )
             })}
           </nav>
+          {/* Platform Owner view link for owners */}
+          {user?.role === 'owner' && (
+            <div className="px-3 pt-2">
+              <Link
+                to="/owner/dashboard"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-200/90 hover:text-white hover:bg-white/10 transition-colors border border-amber-300/25 bg-white/5"
+              >
+                <Globe className="h-3.5 w-3.5 text-amber-300" />
+                <span>Platform Owner View</span>
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Sidebar footer */}

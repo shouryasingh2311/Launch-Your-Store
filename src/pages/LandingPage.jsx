@@ -83,35 +83,22 @@ export function LandingPage() {
           <nav className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
-                <span className="hidden sm:inline text-xs font-semibold text-brand px-2">
-                  {user?.name} ({user?.role?.toUpperCase()})
+                <span className="text-xs font-semibold text-brand px-2">
+                  {user?.name}
                 </span>
-                <Button size="sm" variant="secondary" onClick={handleAdminClick} className="text-xs">
-                  Admin Portal
-                </Button>
-                <Button size="sm" onClick={handleMakeYourOwnClick} className="text-xs font-bold">
-                  Store Setup <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                </Button>
                 <button
                   onClick={logout}
                   title="Sign Out"
-                  className="p-2 text-[var(--sc-muted)] hover:text-brand transition-colors rounded-lg"
+                  className="p-2 text-[var(--sc-muted)] hover:text-brand transition-colors rounded-lg flex items-center gap-1 text-xs"
                 >
                   <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign Out</span>
                 </button>
               </>
             ) : (
-              <>
-                <Link to="/login" className="text-xs font-semibold text-[var(--sc-muted)] hover:text-brand transition-colors px-3 py-2">
-                  Sign In
-                </Link>
-                <Button size="sm" variant="secondary" onClick={handleAdminClick} className="text-xs">
-                  Admin
-                </Button>
-                <Button size="sm" onClick={handleMakeYourOwnClick} className="text-xs font-bold">
-                  Make your own <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                </Button>
-              </>
+              <Button size="sm" onClick={() => navigate('/login')} className="text-xs font-bold px-4">
+                Login
+              </Button>
             )}
           </nav>
         </div>

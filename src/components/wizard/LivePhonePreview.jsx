@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react'
 import { ShoppingBag, Search, ShoppingCart, ArrowLeft } from 'lucide-react'
+import { formatCurrency } from '../../lib/utils'
 
 const DEMO_PRODUCTS = [
-  { name: 'Artisan Ceramic Mug', price: '₹1,499', img: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=300&q=80' },
-  { name: 'Minimalist Vase', price: '₹799',  img: 'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&w=300&q=80' },
-  { name: 'Organic Linen Tote', price: '₹549',    img: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=300&q=80' },
-  { name: 'Soy Wax Candle', price: '₹399',    img: 'https://images.unsplash.com/photo-1602928321679-560bb453f190?auto=format&fit=crop&w=300&q=80' },
+  { id: 'dp-1', name: 'Artisan Ceramic Mug', price: '₹1,499', rawPrice: 1499, img: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=300&q=80', desc: 'Handcrafted artisan ceramic mug for hot coffees and teas.' },
+  { id: 'dp-2', name: 'Minimalist Vase', price: '₹799', rawPrice: 799, img: 'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&w=300&q=80', desc: 'Sleek matte glazed pottery vase with organic contours.' },
+  { id: 'dp-3', name: 'Organic Linen Tote', price: '₹549', rawPrice: 549, img: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=300&q=80', desc: 'Durable eco-friendly everyday carrier woven from natural fibers.' },
+  { id: 'dp-4', name: 'Soy Wax Candle', price: '₹399', rawPrice: 399, img: 'https://images.unsplash.com/photo-1602928321679-560bb453f190?auto=format&fit=crop&w=300&q=80', desc: 'Hand-poured aromatic candle with slow-burning wooden wick.' },
 ]
 
 const THEME_DEFAULTS = {
@@ -25,6 +26,8 @@ export function LivePhonePreview({
   themeOverrides = {},
   previewPage = 'home',
   logoUrl = '',
+  products = [],
+  currency = 'INR',
 }) {
   const themeClass = `theme-${themeId}`
   const baseDefaults = THEME_DEFAULTS[themeId] || THEME_DEFAULTS.emerald
@@ -38,6 +41,30 @@ export function LivePhonePreview({
 
   const radiusMap = { square: '0px', rounded: '10px', pill: '999px' }
   const buttonRadius = radiusMap[btnRadius] || '10px'
+
+  // Map user's manual/selected products to preview items, falling back to DEMO_PRODUCTS if empty
+  const activeProducts = useMemo(() => {
+    if (products && products.length > 0) {
+      return products.map((p, idx) => {
+        const rawNum = typeof p.price === 'number'
+          ? p.price
+          : (parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 999)
+        const formatted = formatCurrency(rawNum, currency)
+        return {
+          id: p.id || `prod-${idx}`,
+          name: p.name || p.title || 'Product',
+          price: formatted,
+          rawPrice: rawNum,
+          img: p.image_url || (Array.isArray(p.images) && p.images[0]) || p.img || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=300&q=80',
+          desc: p.description || p.desc || 'Premium handcrafted quality.'
+        }
+      })
+    }
+    return DEMO_PRODUCTS
+  }, [products, currency])
+
+  const cartItems = activeProducts.slice(0, 2)
+  const cartTotal = cartItems.reduce((sum, item) => sum + (item.rawPrice || 0), 0)
 
   const inlineStyle = useMemo(() => {
     const vars = {
@@ -143,11 +170,11 @@ export function LivePhonePreview({
               ))}
             </div>
 
-            {/* Product grid */}
+            {/* Product grid: renders ONLY manual catalogued products if available */}
             <div className="grid grid-cols-2 gap-2">
-              {DEMO_PRODUCTS.slice(0, 4).map((p, i) => (
+              {activeProducts.slice(0, 4).map((p, i) => (
                 <div
-                  key={i}
+                  key={p.id || i}
                   className="overflow-hidden border border-[var(--store-border)] bg-[var(--store-surface)]"
                   style={{ borderRadius: `calc(${buttonRadius} / 1.2)` }}
                 >
@@ -175,12 +202,12 @@ export function LivePhonePreview({
               <ArrowLeft className="h-3 w-3" />
               <span className="text-[10px]">Back</span>
             </div>
-            <img src={DEMO_PRODUCTS[0].img} alt="Product" className="w-full h-28 object-cover" />
+            <img src={activeProducts[0].img} alt={activeProducts[0].name} className="w-full h-28 object-cover" />
             <div className="p-3 space-y-2 bg-[var(--store-surface)]">
-              <h2 className="font-bold text-xs text-[var(--store-heading)]">{DEMO_PRODUCTS[0].name}</h2>
-              <p className="text-[10px] text-[var(--store-text)] opacity-80">Handcrafted artisan design made for durable everyday performance.</p>
+              <h2 className="font-bold text-xs text-[var(--store-heading)]">{activeProducts[0].name}</h2>
+              <p className="text-[10px] text-[var(--store-text)] opacity-80">{activeProducts[0].desc}</p>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-[var(--store-primary)]">{DEMO_PRODUCTS[0].price}</span>
+                <span className="text-xs font-black text-[var(--store-primary)]">{activeProducts[0].price}</span>
                 <span className="text-[9px] text-green-700 font-medium">In stock</span>
               </div>
               <div
@@ -197,8 +224,8 @@ export function LivePhonePreview({
         {previewPage === 'cart' && (
           <div className="flex-1 bg-[var(--store-bg)] p-3 space-y-3">
             <h2 className="font-bold text-xs text-[var(--store-heading)]">Your Cart</h2>
-            {DEMO_PRODUCTS.slice(0, 2).map((p, i) => (
-              <div key={i} className="flex gap-2 items-center border-b border-[var(--store-border)] pb-2">
+            {cartItems.map((p, i) => (
+              <div key={p.id || i} className="flex gap-2 items-center border-b border-[var(--store-border)] pb-2">
                 <img src={p.img} alt={p.name} className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[9px] font-semibold truncate text-[var(--store-text)]">{p.name}</p>
@@ -209,7 +236,7 @@ export function LivePhonePreview({
             ))}
             <div className="flex justify-between text-[10px] font-bold pt-1 text-[var(--store-text)]">
               <span>Total</span>
-              <span>₹2,298</span>
+              <span>{formatCurrency(cartTotal, currency)}</span>
             </div>
             <div
               className="text-center py-1.5 text-[10px] font-bold text-[var(--store-primary-contrast)] bg-[var(--store-primary)]"

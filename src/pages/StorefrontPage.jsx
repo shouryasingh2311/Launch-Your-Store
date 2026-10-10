@@ -63,9 +63,10 @@ export function StorefrontPage() {
   }, [slug])
 
   // Use either remote DB store or local store
-  const activeStore = remoteStore || (store?.slug === slug ? store : { ...store, slug })
-  const activeProducts = (remoteProducts && remoteProducts.length > 0) ? remoteProducts : products
-  const activeCategories = (remoteCategories && remoteCategories.length > 0) ? remoteCategories : categories
+  const isCurrentTenant = store?.slug === slug
+  const activeStore = isCurrentTenant ? { ...store, ...(remoteStore || {}) } : (remoteStore || { ...store, slug })
+  const activeProducts = isCurrentTenant ? products : ((remoteProducts && remoteProducts.length > 0) ? remoteProducts : products)
+  const activeCategories = isCurrentTenant ? categories : ((remoteCategories && remoteCategories.length > 0) ? remoteCategories : categories)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(null)
