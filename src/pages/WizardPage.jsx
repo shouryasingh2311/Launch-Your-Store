@@ -9,11 +9,12 @@ import {
   Send, Bot, Layout, Sliders
 } from 'lucide-react'
 import { Input } from '../components/ui/Input'
+import { CountryCodeSelector } from '../components/ui/CountryCodeSelector'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { useToast } from '../components/ui/Toast'
-import { PREDEFINED_CATEGORIES, THEMES_METADATA } from '../lib/mockData'
+import { PREDEFINED_CATEGORIES, THEMES_METADATA, DEMO_STORE_PRODUCTS } from '../lib/mockData'
 import { analyzeStorePrompt } from '../lib/aiStoreAnalyzer'
 import { LivePhonePreview } from '../components/wizard/LivePhonePreview'
 import { useStoreData } from '../store/useStoreData'
@@ -169,7 +170,7 @@ export function WizardPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
-  const { updateStore, importDummyProducts, addProduct, setProducts, setCategories, products } = useStoreData()
+  const { updateStore, importDummyProducts, addProduct, setProducts, setCategories, products, saveCustomStore } = useStoreData()
   const { user, isAuthenticated } = useAuthStore()
 
   // Authentication gate: enforce login/signup before store setup
@@ -349,16 +350,22 @@ export function WizardPage() {
 
   // ── Step 3: Product Catalog Operations ────────────────
   const [isImporting, setIsImporting] = useState(false)
-  const handleImportDummy = () => {
+  const handleSeedCatalogTemplate = (key = 'flagship') => {
     setIsImporting(true)
     setTimeout(() => {
-      const count = importDummyProducts()
-      setWizardProducts([...products])
-      patchWizard({ importedProductsCount: count })
+      let seedItems = []
+      if (key === 'fashion') seedItems = DEMO_STORE_PRODUCTS['demo-fashion'] || []
+      else if (key === 'electronics') seedItems = DEMO_STORE_PRODUCTS['demo-electronics'] || []
+      else if (key === 'decor') seedItems = DEMO_STORE_PRODUCTS['demo-decor'] || []
+      else seedItems = DEMO_STORE_PRODUCTS['craft-haven'] || []
+
+      setWizardProducts([...seedItems])
+      patchWizard({ importedProductsCount: seedItems.length })
       setIsImporting(false)
-      toast.success('Catalog Seeded', `${count} products added.`)
-    }, 400)
+      toast.success('Catalog Seeded', `${seedItems.length} products loaded from ${key} collection.`)
+    }, 300)
   }
+  const handleImportDummy = () => handleSeedCatalogTemplate('flagship')
 
   // CSV & Excel sheet parser
   const csvInputRef = useRef(null)
@@ -419,8 +426,7 @@ export function WizardPage() {
           })
         }
 
-        // Add valid products to store and wizard state
-        validRows.forEach(item => addProduct(item))
+        // Add valid products to wizard state (isolated to this store)
         setWizardProducts(prev => [...validRows, ...prev])
         patchWizard({ importedProductsCount: (wizardData.importedProductsCount || 0) + validRows.length })
 
@@ -465,8 +471,8 @@ export function WizardPage() {
       is_active: true
     }
 
+    // Add only to wizard state (will be saved strictly under this store's slug/id on launch)
     setWizardProducts(prev => [newProd, ...prev])
-    addProduct(newProd)
     patchWizard({ importedProductsCount: (wizardData.importedProductsCount || 0) + 1 })
     toast.success('Product Added', `"${manualTitle}" added to catalog.`)
 
@@ -514,7 +520,7 @@ export function WizardPage() {
   const [isLaunched, setIsLaunched] = useState(false)
   const handleLaunchStore = () => {
     // 1. If user catalogued products in wizard, use ONLY those products
-    const finalProducts = wizardProducts.length > 0 ? wizardProducts : products
+    const finalProducts = wizardProducts.length > 0 ? wizardProducts : (DEMO_STORE_PRODUCTS['craft-haven'] || products)
 
     // 2. Filter categories to ONLY those selected in wizard
     const finalCategories = (wizardData.categories || []).map((catName, idx) => ({
@@ -523,13 +529,11 @@ export function WizardPage() {
       slug: catName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
     }))
 
-    setProducts(finalProducts)
-    setCategories(finalCategories)
-
     const fullPhone = `${wizardData.country_code || '+91'} ${wizardData.phone || ''}`.trim()
     const activeCurrency = wizardData.currency || 'INR'
 
-    updateStore({
+    const storePayload = {
+      id: `store-${wizardData.slug || Date.now()}`,
       name: wizardData.name || 'StoreKraft Store',
       slug: wizardData.slug || 'storekraft-store',
       tagline: wizardData.tagline,
@@ -541,8 +545,22 @@ export function WizardPage() {
       theme_id: wizardData.theme_id,
       theme_overrides: wizardData.theme_overrides,
       currency: activeCurrency,
-      currency_symbol: CURRENCY_CONFIG[activeCurrency]?.symbol || '₹'
-    })
+      currency_symbol: CURRENCY_CONFIG[activeCurrency]?.symbol || '₹',
+      content: {
+        heroTitle: wizardData.name ? `${wizardData.name} Collection` : 'Curated Essentials',
+        heroSubtitle: wizardData.tagline || 'Explore handcrafted goods made with purpose.',
+        heroBadge: 'New Launch Live',
+        heroCta: wizardData.theme_overrides?.button?.text || 'Explore Catalog',
+        announcement: 'Welcome to our online store! Shipping available now.'
+      }
+    }
+
+    // Multi-tenant Store Isolation: Save strictly under this store ID & slug
+    saveCustomStore(storePayload, finalProducts, finalCategories)
+    updateStore(storePayload)
+    setProducts(finalProducts)
+    setCategories(finalCategories)
+
     setIsLaunched(true)
     localStorage.removeItem('sk_wizard_draft')
     try {
@@ -802,7 +820,7 @@ export function WizardPage() {
                           onChange={e => patchWizard({ tagline: e.target.value })}
                         />
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                           <Input
                             label="Contact Email"
                             type="email"
@@ -810,32 +828,22 @@ export function WizardPage() {
                             value={wizardData.contact_email}
                             onChange={e => patchWizard({ contact_email: e.target.value })}
                           />
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-[var(--sc-ink)]">
+                          <div className="w-full space-y-1.5">
+                            <label className="block text-xs font-semibold text-[var(--sc-ink)] tracking-wide uppercase">
                               Support Phone
                             </label>
                             <div className="flex gap-2">
-                              <div className="relative min-w-[115px] flex-shrink-0">
-                                <select
-                                  value={wizardData.country_code || '+91'}
-                                  onChange={e => patchWizard({ country_code: e.target.value })}
-                                  className="clay-input w-full pl-2.5 pr-7 py-2 text-xs appearance-none bg-white font-medium min-h-[42px]"
-                                  aria-label="Select Country Code"
-                                >
-                                  {COUNTRY_CODES.map(c => (
-                                    <option key={c.code} value={c.code}>
-                                      {c.flag} {c.code}
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="h-3.5 w-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--sc-muted)]" />
-                              </div>
+                              <CountryCodeSelector
+                                value={wizardData.country_code || '+91'}
+                                onChange={code => patchWizard({ country_code: code })}
+                                className="w-[110px] flex-shrink-0"
+                              />
                               <input
                                 type="tel"
                                 placeholder="98765 43210"
                                 value={wizardData.phone || ''}
                                 onChange={e => patchWizard({ phone: e.target.value })}
-                                className="clay-input flex-1 px-3 py-2 text-xs min-h-[42px]"
+                                className="clay-input flex-1 px-3.5 py-2.5 text-sm text-[var(--sc-ink)] placeholder:text-[var(--sc-muted)] min-h-[44px]"
                                 aria-label="Support phone number"
                               />
                             </div>
@@ -945,18 +953,54 @@ export function WizardPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-                    {/* Option A: Seed Demo */}
+                    {/* Option A: Seed Demo with 4 vertical choices */}
                     <div className="clay-card p-5 space-y-3 flex flex-col justify-between">
                       <div>
                         <Badge variant="indigo" size="sm" className="mb-2">Quick Start</Badge>
-                        <h3 className="text-sm font-bold text-brand">Instant Demo Products</h3>
+                        <h3 className="text-sm font-bold text-brand">Seed Ready Catalog</h3>
                         <p className="text-xs text-[var(--sc-muted)] mt-1">
-                          Seed 8 realistic products with photos, descriptions and INR pricing.
+                          Seed ready-made catalog collections tailored to your vertical:
                         </p>
                       </div>
-                      <Button onClick={handleImportDummy} isLoading={isImporting} className="w-full text-xs">
-                        Seed Catalog ({wizardData.importedProductsCount || 8} items)
-                      </Button>
+                      <div className="space-y-1.5 pt-1">
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleSeedCatalogTemplate('fashion')}
+                            disabled={isImporting}
+                            className="px-2 py-1.5 rounded-lg text-[11px] font-semibold border border-champagne-border bg-white text-[var(--sc-ink)] hover:border-brand hover:bg-brand/10 text-left transition-colors"
+                          >
+                            Fashion (6)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSeedCatalogTemplate('electronics')}
+                            disabled={isImporting}
+                            className="px-2 py-1.5 rounded-lg text-[11px] font-semibold border border-champagne-border bg-white text-[var(--sc-ink)] hover:border-brand hover:bg-brand/10 text-left transition-colors"
+                          >
+                            Electronics (6)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSeedCatalogTemplate('decor')}
+                            disabled={isImporting}
+                            className="px-2 py-1.5 rounded-lg text-[11px] font-semibold border border-champagne-border bg-white text-[var(--sc-ink)] hover:border-brand hover:bg-brand/10 text-left transition-colors"
+                          >
+                            Home Decor (6)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSeedCatalogTemplate('flagship')}
+                            disabled={isImporting}
+                            className="px-2 py-1.5 rounded-lg text-[11px] font-semibold border border-champagne-border bg-white text-[var(--sc-ink)] hover:border-brand hover:bg-brand/10 text-left transition-colors"
+                          >
+                            Flagship All (8)
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-center text-[var(--sc-muted)] pt-0.5">
+                          Current items: {wizardProducts.length}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Option B: Working CSV & Excel Upload */}

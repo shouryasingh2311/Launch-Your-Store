@@ -14,7 +14,10 @@ import { SlidersHorizontal, ArrowUpDown } from 'lucide-react'
 
 export function StorefrontPage() {
   const { slug } = useParams()
-  const { store, products, categories } = useStoreData()
+  const { getStoreData } = useStoreData()
+
+  // Multi-tenant Store Isolation: Fetch the specific store bundle (custom or demo)
+  const storeBundle = useMemo(() => getStoreData(slug), [slug, getStoreData])
 
   const [remoteStore, setRemoteStore] = useState(null)
   const [remoteProducts, setRemoteProducts] = useState(null)
@@ -62,11 +65,24 @@ export function StorefrontPage() {
     return () => { isCancelled = true }
   }, [slug])
 
-  // Use either remote DB store or local store
-  const isCurrentTenant = store?.slug === slug
-  const activeStore = isCurrentTenant ? { ...store, ...(remoteStore || {}) } : (remoteStore || { ...store, slug })
-  const activeProducts = isCurrentTenant ? products : ((remoteProducts && remoteProducts.length > 0) ? remoteProducts : products)
-  const activeCategories = isCurrentTenant ? categories : ((remoteCategories && remoteCategories.length > 0) ? remoteCategories : categories)
+  // Isolated store, product catalog, and categories
+  const activeStore = remoteStore ? { ...storeBundle.store, ...remoteStore } : storeBundle.store
+  const activeProducts = (remoteProducts && remoteProducts.length > 0) ? remoteProducts : storeBundle.products
+  const activeCategories = (remoteCategories && remoteCategories.length > 0) ? remoteCategories : storeBundle.categories
+
+  // Dynamic CSS variables from theme overrides
+  const themeStyles = useMemo(() => {
+    const colors = activeStore?.theme_overrides?.colors || {}
+    const styles = {}
+    if (colors.primary) styles['--store-primary'] = colors.primary
+    if (colors.primaryText) styles['--store-primary-contrast'] = colors.primaryText
+    if (colors.background) styles['--store-bg'] = colors.background
+    if (colors.surface) styles['--store-surface'] = colors.surface
+    if (colors.text) styles['--store-text'] = colors.text
+    if (colors.heading) styles['--store-heading'] = colors.heading
+    if (colors.border) styles['--store-border'] = colors.border
+    return styles
+  }, [activeStore])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -78,7 +94,7 @@ export function StorefrontPage() {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let result = activeProducts.filter(p => p.is_active !== false)
+    let result = (activeProducts || []).filter(p => p.is_active !== false)
 
     if (selectedCategory) {
       result = result.filter(p => p.category_id === selectedCategory || p.categoryName?.toLowerCase().includes(selectedCategory.toLowerCase()))
@@ -100,7 +116,7 @@ export function StorefrontPage() {
     }
 
     return result
-  }, [products, selectedCategory, searchQuery, sortBy])
+  }, [activeProducts, selectedCategory, searchQuery, sortBy])
 
   // Scroll to catalog when clicking hero Explore
   const handleScrollToCatalog = () => {
@@ -108,10 +124,13 @@ export function StorefrontPage() {
     if (el) el.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const themeClass = `theme-${activeStore?.theme_id || 'elegant'}`
+  const themeClass = `theme-${activeStore?.theme_id || 'emerald'}`
 
   return (
-    <div className={`min-h-screen bg-[var(--store-bg,#ffffff)] text-[var(--store-text,#0f172a)] ${themeClass} transition-colors duration-300 flex flex-col justify-between`}>
+    <div
+      style={themeStyles}
+      className={`min-h-screen bg-[var(--store-bg,#ffffff)] text-[var(--store-text,#0f172a)] ${themeClass} transition-colors duration-300 flex flex-col justify-between`}
+    >
       <div>
         {/* Top Announcement Bar */}
         {activeStore?.content?.announcement && (

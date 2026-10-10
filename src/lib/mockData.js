@@ -497,3 +497,400 @@ export function executeChatbotQuery(query, products = INITIAL_PRODUCTS, orders =
     params: null
   };
 }
+
+// =========================================================================
+// 4 DISTINCT COMMERCIAL DEMO STORE TEMPLATES
+// 1. Fashion & Apparel (Atelier Noir)
+// 2. Electronics & Audio (Pulse Audio & Tech)
+// 3. Home Decor & Ceramics (Terra Living & Decor)
+// 4. All-in-1 Flagship (StoreKraft Flagship)
+// =========================================================================
+
+export const DEMO_STORES = {
+  'demo-fashion': {
+    id: 'demo-fashion',
+    slug: 'demo-fashion',
+    name: 'Atelier Noir',
+    tagline: 'Contemporary Haute Couture & Modern Editorial Apparel',
+    business_type: 'Fashion & Apparel',
+    theme_id: 'rose',
+    theme_overrides: {
+      colors: {
+        primary: '#FB7185',
+        primaryText: '#FFFFFF',
+        background: '#18181B',
+        surface: '#27272A',
+        text: '#FDA4AF',
+        heading: '#FFF1F2',
+        border: '#3F3F46'
+      },
+      fonts: { heading: 'Playfair Display', body: 'Inter' },
+      button: { radius: 'rounded', position: 'hero', style: 'filled', text: 'Explore Runway' }
+    },
+    content: {
+      heroTitle: 'Haute Couture Meets Modern Utility',
+      heroSubtitle: 'Tailored silhouettes, raw selvedge denim, and breathable Italian linens designed in Milan.',
+      heroBadge: 'Autumn/Winter Lookbook 2026',
+      heroCta: 'Explore Runway',
+      announcement: 'Complimentary white-glove courier delivery on all orders over ₹4,999'
+    }
+  },
+
+  'demo-electronics': {
+    id: 'demo-electronics',
+    slug: 'demo-electronics',
+    name: 'Pulse Audio & Tech',
+    tagline: 'Studio Acoustic Engineering & Ergonomic Hardware',
+    business_type: 'Electronics & Gadgets',
+    theme_id: 'midnight',
+    theme_overrides: {
+      colors: {
+        primary: '#0D9488',
+        primaryText: '#FFFFFF',
+        background: '#0F172A',
+        surface: '#1E293B',
+        text: '#94A3B8',
+        heading: '#F8FAFC',
+        border: '#334155'
+      },
+      fonts: { heading: 'Space Grotesk', body: 'Inter' },
+      button: { radius: 'pill', position: 'floating', style: 'glow', text: 'Shop Pro Gear' }
+    },
+    content: {
+      heroTitle: 'Pure Acoustic Fidelity & Pro Hardware',
+      heroSubtitle: 'Studio-grade hybrid active noise cancellation, custom mechanical switches, and high-performance desk gear.',
+      heroBadge: 'New Pro Lineup Released',
+      heroCta: 'Shop Pro Gear',
+      announcement: '2-Year Hardware Replacement Warranty + Express Free Delivery Worldwide'
+    }
+  },
+
+  'demo-decor': {
+    id: 'demo-decor',
+    slug: 'demo-decor',
+    name: 'Terra Living & Ceramics',
+    tagline: 'Hand-Thrown Stoneware Pottery & Tactile Living Accents',
+    business_type: 'Home Decor & Living',
+    theme_id: 'amber',
+    theme_overrides: {
+      colors: {
+        primary: '#B45309',
+        primaryText: '#FFFFFF',
+        background: '#FAF5EF',
+        surface: '#FFFFFF',
+        text: '#57534E',
+        heading: '#292524',
+        border: '#E7E5E4'
+      },
+      fonts: { heading: 'Playfair Display', body: 'Lato' },
+      button: { radius: 'rounded', position: 'hero', style: 'clay', text: 'View Studio Drops' }
+    },
+    content: {
+      heroTitle: 'Objects Sculpted with Clay, Fire & Soul',
+      heroSubtitle: 'Wheel-thrown pottery, organic woven linen throws, and hand-poured botanical candles crafted by generational artisans.',
+      heroBadge: 'Small-Batch Kiln Firing Live',
+      heroCta: 'View Studio Drops',
+      announcement: 'Zero plastic packaging. Sustainably shipped in recyclable honeycomb paper.'
+    }
+  },
+
+  'craft-haven': {
+    id: 'demo-flagship',
+    slug: 'craft-haven',
+    name: 'StoreKraft Flagship',
+    tagline: 'Curated Department Store for Modern Living',
+    business_type: 'Multi-Category Department Store',
+    theme_id: 'emerald',
+    theme_overrides: {
+      colors: {
+        primary: '#064E3B',
+        primaryText: '#F8E7C9',
+        background: '#F8E7C9',
+        surface: '#FFF9EC',
+        text: '#4B5F57',
+        heading: '#064E3B',
+        border: '#E8D5AE'
+      },
+      fonts: { heading: 'Poppins', body: 'Inter' },
+      button: { radius: 'rounded', position: 'hero', style: 'filled', text: 'Explore All Departments' }
+    },
+    content: {
+      heroTitle: 'Curated Department Store for Modern Living',
+      heroSubtitle: 'Explore our multi-category flagship collection spanning haute apparel, audio hardware, handcrafted ceramics, and fine accessories.',
+      heroBadge: 'Spring Flagship Showcase 2026',
+      heroCta: 'Explore All Departments',
+      announcement: 'Free express shipping on all orders over ₹1,999 with code FLAGSHIP'
+    }
+  }
+};
+
+// Aliases for friendly routing
+DEMO_STORES['demo-flagship'] = DEMO_STORES['craft-haven'];
+DEMO_STORES['atelier-noir'] = DEMO_STORES['demo-fashion'];
+DEMO_STORES['pulse-tech'] = DEMO_STORES['demo-electronics'];
+DEMO_STORES['terra-living'] = DEMO_STORES['demo-decor'];
+
+export const DEMO_STORE_CATEGORIES = {
+  'demo-fashion': [
+    { id: 'cat-f1', name: 'Outerwear & Jackets', slug: 'outerwear' },
+    { id: 'cat-f2', name: 'Italian Linen & Shirts', slug: 'linen-shirts' },
+    { id: 'cat-f3', name: 'Tailored Trousers', slug: 'tailored' },
+    { id: 'cat-f4', name: 'Tuscan Leather Footwear', slug: 'footwear' },
+    { id: 'cat-f5', name: 'Haute Knitwear & Silk', slug: 'knitwear' },
+  ],
+  'demo-electronics': [
+    { id: 'cat-e1', name: 'Wireless Audio & ANC', slug: 'audio' },
+    { id: 'cat-e2', name: 'Mechanical Keyboards', slug: 'keyboards' },
+    { id: 'cat-e3', name: 'Studio Reference Sound', slug: 'studio-sound' },
+    { id: 'cat-e4', name: 'Desk Ambient Lighting', slug: 'lighting' },
+    { id: 'cat-e5', name: 'Fast Charging Stations', slug: 'charging' },
+  ],
+  'demo-decor': [
+    { id: 'cat-d1', name: 'Stoneware & Ceramic Vases', slug: 'vases' },
+    { id: 'cat-d2', name: 'Handcrafted Tableware', slug: 'tableware' },
+    { id: 'cat-d3', name: 'Sculptural Vessels', slug: 'vessels' },
+    { id: 'cat-d4', name: 'Botanical Amber Candles', slug: 'candles' },
+    { id: 'cat-d5', name: 'Organic Linen Textiles', slug: 'textiles' },
+  ],
+  'craft-haven': PREDEFINED_CATEGORIES,
+  'demo-flagship': PREDEFINED_CATEGORIES,
+};
+
+export const DEMO_STORE_PRODUCTS = {
+  'demo-fashion': [
+    {
+      id: 'fash-1',
+      name: 'Heritage Raw Selvedge Denim Jacket',
+      price: 3499,
+      compare_at_price: 4999,
+      stock: 18,
+      categoryName: 'Outerwear & Jackets',
+      sku: 'NOIR-JKT-01',
+      description: 'Crafted from 13.5oz Kurabo Japanese selvedge denim with antique brass hardware and double-needle contrast stitching.',
+      image_url: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'fash-2',
+      name: 'Pure Italian Linen Relaxed Overshirt',
+      price: 2199,
+      compare_at_price: 2899,
+      stock: 24,
+      categoryName: 'Italian Linen & Shirts',
+      sku: 'NOIR-SHT-02',
+      description: 'Airy, breathable European flax linen garment-dyed in muted charcoal. Pre-washed for a buttery soft drape.',
+      image_url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'fash-3',
+      name: 'Sculpted Double-Breasted Cashmere Trench',
+      price: 8499,
+      compare_at_price: 11999,
+      stock: 7,
+      categoryName: 'Outerwear & Jackets',
+      sku: 'NOIR-TRN-03',
+      description: 'Substantial 520gsm virgin wool-cashmere blend featuring horn buttons, structured storm flap and belted waist.',
+      image_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'fash-4',
+      name: 'French Terry Drop-Shoulder Minimalist Hoodie',
+      price: 2799,
+      compare_at_price: 3499,
+      stock: 35,
+      categoryName: 'Haute Knitwear & Silk',
+      sku: 'NOIR-HD-04',
+      description: '450gsm heavyweight organic cotton loopback French terry with double-layered hood and clean pocketless torso.',
+      image_url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'fash-5',
+      name: 'Vegetable-Tanned Tuscan Leather Chelsea Boots',
+      price: 6499,
+      compare_at_price: 8999,
+      stock: 12,
+      categoryName: 'Tuscan Leather Footwear',
+      sku: 'NOIR-BOT-05',
+      description: 'Handcrafted in Florence from full-grain calfskin with Goodyear-welted Dainite rubber soles and elasticated gussets.',
+      image_url: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'fash-6',
+      name: 'Mulberry Silk Bias-Cut Midi Slip Dress',
+      price: 4899,
+      compare_at_price: 6499,
+      stock: 9,
+      categoryName: 'Haute Knitwear & Silk',
+      sku: 'NOIR-DRS-06',
+      description: '100% 22-momme Grade 6A mulberry silk with gentle cowl neckline and graceful bias drape that moves like liquid mercury.',
+      image_url: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    }
+  ],
+
+  'demo-electronics': [
+    {
+      id: 'elec-1',
+      name: 'AcousticPro ANC Wireless Studio Headphones',
+      price: 8999,
+      compare_at_price: 11999,
+      stock: 22,
+      categoryName: 'Wireless Audio & ANC',
+      sku: 'PULSE-HDP-01',
+      description: 'Custom 40mm beryllium drivers, hybrid 42dB active noise cancellation, LDAC Hi-Res certification, and 45-hour battery life.',
+      image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'elec-2',
+      name: 'Tactile Gasket 75% Mechanical Keyboard RGB',
+      price: 4999,
+      compare_at_price: 6499,
+      stock: 14,
+      categoryName: 'Mechanical Keyboards',
+      sku: 'PULSE-KBD-02',
+      description: 'CNC anodized aluminum frame with gasket mounting, factory-lubed linear switches, south-facing RGB and hot-swap PCB.',
+      image_url: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'elec-3',
+      name: 'Studio Precision Active Reference Desk Monitors',
+      price: 14999,
+      compare_at_price: 18999,
+      stock: 6,
+      categoryName: 'Studio Reference Sound',
+      sku: 'PULSE-MON-03',
+      description: 'Bi-amplified 5-inch Kevlar woofers and silk dome tweeters tuned flat for mixing, production, and audiophile desktop audio.',
+      image_url: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'elec-4',
+      name: 'Curved 4K Display Ambient Magnetic Lightbar',
+      price: 2499,
+      compare_at_price: 3299,
+      stock: 30,
+      categoryName: 'Desk Ambient Lighting',
+      sku: 'PULSE-LGT-04',
+      description: 'Asymmetric optical glare-free design with wireless 2.4GHz desktop rotary dial, auto-dimming sensor and CRI 97 daylight rating.',
+      image_url: 'https://images.unsplash.com/photo-1593062096033-9a26b09da705?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'elec-5',
+      name: 'MagCharge 3-in-1 Fast Wireless Stand',
+      price: 3199,
+      compare_at_price: 4199,
+      stock: 25,
+      categoryName: 'Fast Charging Stations',
+      sku: 'PULSE-CHG-05',
+      description: 'Simultaneously charge phone at 15W, watch at 5W, and earbuds at 5W with weighted solid aluminum base and braided cable.',
+      image_url: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'elec-6',
+      name: 'Carbon Fiber Ergonomic Vertical Wireless Mouse',
+      price: 1999,
+      compare_at_price: 2799,
+      stock: 19,
+      categoryName: 'Mechanical Keyboards',
+      sku: 'PULSE-MOU-06',
+      description: '57-degree natural handshake angle that relieves carpal strain. PixArt 4000 DPI sensor with silent mechanical switches.',
+      image_url: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    }
+  ],
+
+  'demo-decor': [
+    {
+      id: 'decor-1',
+      name: 'Artisan Ribbed Stoneware Pottery Vase Set',
+      price: 1799,
+      compare_at_price: 2399,
+      stock: 16,
+      categoryName: 'Stoneware & Ceramic Vases',
+      sku: 'TERRA-VAS-01',
+      description: 'Hand-thrown in small batches with tactile volcanic glaze. Water-tight construction designed for fresh eucalyptus or pampas.',
+      image_url: 'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'decor-2',
+      name: 'Hand-Thrown Ceramic Espresso Mugs Set of 4',
+      price: 1399,
+      compare_at_price: 1899,
+      stock: 28,
+      categoryName: 'Handcrafted Tableware',
+      sku: 'TERRA-MUG-02',
+      description: 'Unfinished raw terracotta base paired with milky satin glaze. Microwave and dishwasher safe, sized for 90ml double shots.',
+      image_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'decor-3',
+      name: 'Sculpted Travertine Stone Incense Vessel',
+      price: 899,
+      compare_at_price: 1299,
+      stock: 40,
+      categoryName: 'Sculptural Vessels',
+      sku: 'TERRA-VES-03',
+      description: 'Chiseled from solid Turkish travertine with organic porous cavities. Holds stick, rope, and cone incense safely.',
+      image_url: 'https://images.unsplash.com/photo-1602928321679-560bb453f190?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'decor-4',
+      name: 'Hand-Poured Amber & Vetiver Soy Candle',
+      price: 799,
+      compare_at_price: 999,
+      stock: 50,
+      categoryName: 'Botanical Amber Candles',
+      sku: 'TERRA-CND-04',
+      description: 'Botanical wax blend infused with wild patchouli, smoked cedar, and bergamot. FSC-certified crackling wood wick with 55h burn time.',
+      image_url: 'https://images.unsplash.com/photo-1603006905003-be475563bc59?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'decor-5',
+      name: 'Waffle-Weave Pure Organic Linen Throw Blanket',
+      price: 2599,
+      compare_at_price: 3499,
+      stock: 12,
+      categoryName: 'Organic Linen Textiles',
+      sku: 'TERRA-THR-05',
+      description: 'Pre-washed French flax linen with dimensional honeycomb weave. Moisture-wicking, breathable, and gets softer with every wash.',
+      image_url: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    },
+    {
+      id: 'decor-6',
+      name: 'Terracotta Minimalist Indoor Planter with Saucer',
+      price: 1199,
+      compare_at_price: 1599,
+      stock: 22,
+      categoryName: 'Stoneware & Ceramic Vases',
+      sku: 'TERRA-PLT-06',
+      description: 'High-fire porous natural clay promoting root aeration with integrated drainage hole and matching catch tray.',
+      image_url: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=800&q=80',
+      is_active: true
+    }
+  ],
+
+  'craft-haven': INITIAL_PRODUCTS,
+  'demo-flagship': INITIAL_PRODUCTS
+};
+
+DEMO_STORE_PRODUCTS['atelier-noir'] = DEMO_STORE_PRODUCTS['demo-fashion'];
+DEMO_STORE_PRODUCTS['pulse-tech'] = DEMO_STORE_PRODUCTS['demo-electronics'];
+DEMO_STORE_PRODUCTS['terra-living'] = DEMO_STORE_PRODUCTS['demo-decor'];
+
+DEMO_STORE_CATEGORIES['atelier-noir'] = DEMO_STORE_CATEGORIES['demo-fashion'];
+DEMO_STORE_CATEGORIES['pulse-tech'] = DEMO_STORE_CATEGORIES['demo-electronics'];
+DEMO_STORE_CATEGORIES['terra-living'] = DEMO_STORE_CATEGORIES['demo-decor'];
+

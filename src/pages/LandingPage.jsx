@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Store, LayoutDashboard, ShoppingBag, Palette, Sliders, Shield, LogOut } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { useStoreData } from '../store/useStoreData'
 import { useAuthStore } from '../store/useAuthStore'
+import { DemoShowcaseModal } from '../components/storefront/DemoShowcaseModal'
 
 const COMMERCIAL_CAPABILITIES = [
   {
@@ -42,6 +43,7 @@ export function LandingPage() {
   const navigate = useNavigate()
   const { store } = useStoreData()
   const { user, isAuthenticated, logout } = useAuthStore()
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false)
 
   const handleAdminClick = () => {
     if (isAuthenticated && user?.role === 'owner') {
@@ -123,12 +125,15 @@ export function LandingPage() {
             <Button size="lg" onClick={handleMakeYourOwnClick} className="font-bold text-sm px-8">
               Make your own <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
-            <Link to={`/s/${store?.slug || 'craft-haven'}`}>
-              <Button size="lg" variant="secondary" className="text-sm px-6">
-                <Store className="h-4 w-4 mr-2" />
-                Live Demo Store
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => setIsDemoModalOpen(true)}
+              className="text-sm px-6 font-semibold"
+            >
+              <Store className="h-4 w-4 mr-2" />
+              Explore 4 Demo Stores
+            </Button>
           </div>
         </div>
 
@@ -155,9 +160,12 @@ export function LandingPage() {
               Admin Portal
             </button>
             <span>·</span>
-            <Link to={`/s/${store?.slug || 'craft-haven'}`} className="hover:text-brand transition-colors font-medium">
-              Demo Storefront
-            </Link>
+            <button
+              onClick={() => setIsDemoModalOpen(true)}
+              className="hover:text-brand transition-colors font-medium"
+            >
+              4 Demo Storefronts
+            </button>
             <span>·</span>
             <button onClick={handleMakeYourOwnClick} className="hover:text-brand transition-colors font-medium">
               Create Store
@@ -165,6 +173,16 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Demo Showcase Modal */}
+      <DemoShowcaseModal
+        isOpen={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        onSelectTemplate={(template) => {
+          setIsDemoModalOpen(false)
+          navigate(`/s/${template.slug}`)
+        }}
+      />
     </div>
   )
 }

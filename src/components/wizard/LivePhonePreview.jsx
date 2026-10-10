@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react'
-import { ShoppingBag, Search, ShoppingCart, ArrowLeft } from 'lucide-react'
-import { formatCurrency } from '../../lib/utils'
+import React, { useMemo, useState } from 'react'
+import { ShoppingBag, Search, ShoppingCart, ArrowLeft, GripVertical } from 'lucide-react'
+import { formatCurrency, cn } from '../../lib/utils'
 
 const DEMO_PRODUCTS = [
   { id: 'dp-1', name: 'Artisan Ceramic Mug', price: '₹1,499', rawPrice: 1499, img: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=300&q=80', desc: 'Handcrafted artisan ceramic mug for hot coffees and teas.' },
@@ -28,12 +28,19 @@ export function LivePhonePreview({
   logoUrl = '',
   products = [],
   currency = 'INR',
+  onButtonChange = null,
 }) {
+  const [isDraggingBtn, setIsDraggingBtn] = useState(false)
+  const [activeDropZone, setActiveDropZone] = useState(null)
+
   const themeClass = `theme-${themeId}`
   const baseDefaults = THEME_DEFAULTS[themeId] || THEME_DEFAULTS.emerald
   const ov = themeOverrides?.colors || {}
-  const btnRadius = themeOverrides?.button?.radius || 'rounded'
-  const btnPosition = themeOverrides?.button?.position || 'hero' // 'header' | 'hero' | 'floating' | 'footer'
+  const btnConfig = themeOverrides?.button || {}
+  const btnRadius = btnConfig.radius || 'rounded'
+  const btnPosition = btnConfig.position || 'hero' // 'header' | 'hero' | 'subhero' | 'floating' | 'footer' | 'product'
+  const btnText = btnConfig.text || 'Shop Now'
+  const btnStyle = btnConfig.style || 'filled' // 'filled' | 'outline' | 'clay' | 'glow'
   const heroImg = themeOverrides?.background?.heroImageUrl || ''
 
   const headingFont = themeOverrides?.fonts?.heading || ''
@@ -94,6 +101,78 @@ export function LivePhonePreview({
     </div>
   )
 
+  // Drag and drop handlers
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('text/plain', 'custom-btn')
+    setIsDraggingBtn(true)
+  }
+
+  const handleDragEnd = () => {
+    setIsDraggingBtn(false)
+    setActiveDropZone(null)
+  }
+
+  const handleDrop = (zone) => {
+    setIsDraggingBtn(false)
+    setActiveDropZone(null)
+    onButtonChange?.({ position: zone })
+  }
+
+  // Common button renderer with drag support
+  const renderCtaButton = (extraClass = '', isHeader = false) => {
+    const isOutline = btnStyle === 'outline'
+    const isClay = btnStyle === 'clay'
+    const isGlow = btnStyle === 'glow'
+
+    return (
+      <div
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        title="Drag and drop me to change position!"
+        className={cn(
+          "cursor-grab active:cursor-grabbing font-bold transition-all select-none flex items-center justify-center gap-1 group",
+          isHeader ? "px-2 py-0.5 text-[8px]" : "px-3.5 py-1.5 text-[9px]",
+          isClay && "shadow-clay-btn",
+          isGlow && "shadow-lg ring-2 ring-white/30",
+          extraClass
+        )}
+        style={{
+          background: isOutline ? 'transparent' : 'var(--store-primary)',
+          color: isOutline ? 'var(--store-primary)' : 'var(--store-primary-contrast)',
+          border: isOutline ? '1.5px solid var(--store-primary)' : 'none',
+          borderRadius: buttonRadius
+        }}
+      >
+        <GripVertical className="h-2.5 w-2.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+        <span>{btnText}</span>
+      </div>
+    )
+  }
+
+  // Drop zone indicator
+  const renderDropTarget = (zone, label) => {
+    if (!isDraggingBtn && btnPosition !== zone) return null
+    if (!isDraggingBtn) return null
+
+    const isHovered = activeDropZone === zone
+    return (
+      <div
+        onDragOver={(e) => { e.preventDefault(); setActiveDropZone(zone) }}
+        onDragLeave={() => setActiveDropZone(null)}
+        onDrop={(e) => { e.preventDefault(); handleDrop(zone) }}
+        className={cn(
+          "p-1.5 rounded-lg border-2 border-dashed text-center text-[8px] font-bold transition-all",
+          isHovered
+            ? "border-amber-400 bg-amber-400/20 text-amber-900 scale-102"
+            : "border-brand/40 bg-brand/5 text-brand"
+        )}
+      >
+        Drop button here ({label})
+      </div>
+    )
+  }
+
   return (
     <div className="relative mx-auto w-[272px] rounded-[38px] border-[8px] border-[#1a1a1a] bg-[#1a1a1a] shadow-2xl overflow-hidden"
       style={{ aspectRatio: '9/19.5' }}
@@ -112,18 +191,8 @@ export function LivePhonePreview({
         <header className="sticky top-0 z-10 px-3 py-2 mt-5 flex items-center justify-between border-b border-[var(--store-border)] bg-[var(--store-surface)]">
           {headerLogo}
           <div className="flex items-center gap-1.5 text-[var(--store-text)]">
-            {btnPosition === 'header' && (
-              <div
-                className="px-2 py-0.5 text-[8px] font-bold transition-all"
-                style={{
-                  background: 'var(--store-primary)',
-                  color: 'var(--store-primary-contrast)',
-                  borderRadius: buttonRadius
-                }}
-              >
-                Shop Now
-              </div>
-            )}
+            {btnPosition === 'header' && renderCtaButton('', true)}
+            {renderDropTarget('header', 'Header Bar')}
             <Search className="h-3 w-3 opacity-60" />
             <ShoppingCart className="h-3 w-3 opacity-60" />
           </div>
@@ -137,25 +206,23 @@ export function LivePhonePreview({
               className="rounded-xl overflow-hidden flex flex-col items-center justify-center text-center gap-1.5 p-4 relative"
               style={{
                 background: heroImg ? `url(${heroImg}) center/cover no-repeat` : 'var(--store-primary)',
-                minHeight: 80
+                minHeight: 88
               }}
             >
               <p className="font-bold text-[11px] leading-tight text-[var(--store-primary-contrast)] drop-shadow-sm">
                 {tagline || 'Shop our latest collection'}
               </p>
-              {btnPosition === 'hero' && (
-                <div
-                  className="px-3 py-1 text-[9px] font-bold"
-                  style={{
-                    background: heroImg ? 'var(--store-primary)' : 'rgba(255,255,255,0.18)',
-                    color: heroImg ? 'var(--store-primary-contrast)' : '#fff',
-                    borderRadius: buttonRadius
-                  }}
-                >
-                  Shop Now
-                </div>
-              )}
+              {btnPosition === 'hero' && renderCtaButton('mt-1')}
+              {renderDropTarget('hero', 'Hero Section')}
             </div>
+
+            {/* Sub-Hero Zone (if position === 'subhero') */}
+            {btnPosition === 'subhero' && (
+              <div className="flex justify-center py-1">
+                {renderCtaButton('w-full')}
+              </div>
+            )}
+            {renderDropTarget('subhero', 'Sub-Hero')}
 
             {/* Category chips */}
             <div className="flex gap-1.5 overflow-hidden">
@@ -175,23 +242,30 @@ export function LivePhonePreview({
               {activeProducts.slice(0, 4).map((p, i) => (
                 <div
                   key={p.id || i}
-                  className="overflow-hidden border border-[var(--store-border)] bg-[var(--store-surface)]"
+                  className="overflow-hidden border border-[var(--store-border)] bg-[var(--store-surface)] flex flex-col justify-between"
                   style={{ borderRadius: `calc(${buttonRadius} / 1.2)` }}
                 >
                   <img src={p.img} alt={p.name} className="h-[60px] w-full object-cover" loading="lazy" />
-                  <div className="p-1.5 space-y-0.5">
-                    <p className="text-[9px] font-semibold truncate text-[var(--store-text)]">{p.name}</p>
-                    <p className="text-[9px] font-bold text-[var(--store-primary)]">{p.price}</p>
-                    <div
-                      className="mt-1 text-[8px] font-bold text-center py-0.5 text-[var(--store-primary-contrast)] bg-[var(--store-primary)]"
-                      style={{ borderRadius: buttonRadius }}
-                    >
-                      Add to Cart
+                  <div className="p-1.5 space-y-0.5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[9px] font-semibold truncate text-[var(--store-text)]">{p.name}</p>
+                      <p className="text-[9px] font-bold text-[var(--store-primary)]">{p.price}</p>
                     </div>
+                    {btnPosition === 'product' ? (
+                      renderCtaButton('mt-1 text-[8px] py-0.5 w-full')
+                    ) : (
+                      <div
+                        className="mt-1 text-[8px] font-bold text-center py-0.5 text-[var(--store-primary-contrast)] bg-[var(--store-primary)]"
+                        style={{ borderRadius: buttonRadius }}
+                      >
+                        Add to Cart
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+            {renderDropTarget('product', 'Product Cards')}
           </div>
         )}
 
@@ -249,38 +323,24 @@ export function LivePhonePreview({
 
         {/* ── Floating Action CTA button (if chosen) ── */}
         {btnPosition === 'floating' && previewPage === 'home' && (
-          <div
-            className="absolute bottom-10 right-3 z-30 px-2.5 py-1 text-[8px] font-bold shadow-lg flex items-center gap-1 cursor-pointer animate-bounce"
-            style={{
-              background: 'var(--store-primary)',
-              color: 'var(--store-primary-contrast)',
-              borderRadius: '999px'
-            }}
-          >
-            <ShoppingBag className="h-3 w-3" /> Shop Now
+          <div className="absolute bottom-10 right-3 z-30">
+            {renderCtaButton('px-3 py-1.5 text-[8px] shadow-xl')}
           </div>
         )}
+        {renderDropTarget('floating', 'Floating Bottom')}
 
         {/* ── Sticky Footer CTA bar (if chosen) ── */}
         {btnPosition === 'footer' && previewPage === 'home' && (
           <div className="sticky bottom-6 z-20 px-3 py-1.5 bg-[var(--store-surface)] border-t border-[var(--store-border)]">
-            <div
-              className="w-full text-center py-1 text-[9px] font-bold"
-              style={{
-                background: 'var(--store-primary)',
-                color: 'var(--store-primary-contrast)',
-                borderRadius: buttonRadius
-              }}
-            >
-              Shop Now
-            </div>
+            {renderCtaButton('w-full py-1.5')}
           </div>
         )}
+        {renderDropTarget('footer', 'Sticky Footer')}
 
         {/* Mini status bar at bottom */}
-        <div className="shrink-0 px-3 py-1.5 text-[9px] text-[var(--store-text)] opacity-70 border-t border-[var(--store-border)] bg-[var(--store-surface)] text-center">
-          Theme: <span className="font-semibold capitalize">{themeId}</span>
-          <span className="ml-1 opacity-75">· Button: {btnPosition}</span>
+        <div className="shrink-0 px-3 py-1 text-[8px] text-[var(--store-text)] opacity-75 border-t border-[var(--store-border)] bg-[var(--store-surface)] flex items-center justify-between">
+          <span className="capitalize">{themeId} · {btnRadius}</span>
+          <span className="font-semibold text-brand">Btn: {btnPosition}</span>
         </div>
       </div>
     </div>

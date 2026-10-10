@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { INITIAL_DEMO_STORE, INITIAL_PRODUCTS, INITIAL_ORDERS, PREDEFINED_CATEGORIES } from '../lib/mockData'
+import { INITIAL_DEMO_STORE, INITIAL_PRODUCTS, INITIAL_ORDERS, PREDEFINED_CATEGORIES, DEMO_STORES, DEMO_STORE_PRODUCTS, DEMO_STORE_CATEGORIES } from '../lib/mockData'
 
 export const useStoreData = create(
   persist(
@@ -10,6 +10,7 @@ export const useStoreData = create(
       categories: PREDEFINED_CATEGORIES,
       products: INITIAL_PRODUCTS,
       orders: INITIAL_ORDERS,
+      customStores: {},
       team: [
         { id: 'tm-1', name: 'Admin', email: 'admin@storekraft.com', role: 'owner', added_at: '2026-03-01' },
         { id: 'tm-2', name: 'Store Staff', email: 'staff@storekraft.com', role: 'staff', added_at: '2026-03-15' },
@@ -20,6 +21,56 @@ export const useStoreData = create(
         { id: 'notif-2', channel: 'Email', message: 'Shipping label created for Order ORD-1002 (Delhivery)', timestamp: '2026-04-03T09:30:00Z' },
         { id: 'notif-3', channel: 'WhatsApp', message: 'Order confirmation sent for ORD-1004', timestamp: '2026-04-06T16:21:00Z' }
       ],
+
+      // Multi-tenant Store Isolation: Save & Retrieve custom user stores
+      saveCustomStore: (storeData, productsArray, categoriesArray) => {
+        const slug = storeData.slug
+        set(state => ({
+          customStores: {
+            ...(state.customStores || {}),
+            [slug]: {
+              store: storeData,
+              products: Array.isArray(productsArray) ? productsArray : [],
+              categories: Array.isArray(categoriesArray) ? categoriesArray : []
+            }
+          }
+        }))
+      },
+
+      getStoreData: (slug) => {
+        const state = get()
+        const targetSlug = slug || 'craft-haven'
+
+        // 1. Check if user-created custom store exists in persistent storage
+        if (state.customStores && state.customStores[targetSlug]) {
+          return state.customStores[targetSlug]
+        }
+
+        // 2. Check if it's one of the 4 commercial demo stores
+        if (DEMO_STORES[targetSlug]) {
+          return {
+            store: DEMO_STORES[targetSlug],
+            products: DEMO_STORE_PRODUCTS[targetSlug] || INITIAL_PRODUCTS,
+            categories: DEMO_STORE_CATEGORIES[targetSlug] || PREDEFINED_CATEGORIES
+          }
+        }
+
+        // 3. Check if active session store matches target slug
+        if (state.store?.slug === targetSlug) {
+          return {
+            store: state.store,
+            products: state.products || INITIAL_PRODUCTS,
+            categories: state.categories || PREDEFINED_CATEGORIES
+          }
+        }
+
+        // 4. Fallback to craft-haven (flagship)
+        return {
+          store: DEMO_STORES['craft-haven'] || INITIAL_DEMO_STORE,
+          products: DEMO_STORE_PRODUCTS['craft-haven'] || INITIAL_PRODUCTS,
+          categories: DEMO_STORE_CATEGORIES['craft-haven'] || PREDEFINED_CATEGORIES
+        }
+      },
 
       // Update store settings / theme
       updateStore: (patch) => {
