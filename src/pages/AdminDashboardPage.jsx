@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { AdminLayout } from '../components/admin/AdminLayout'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { useStoreData } from '../store/useStoreData'
+import { useAuthStore } from '../store/useAuthStore'
 import { formatINR } from '../lib/utils'
 import { api } from '../lib/api'
 import { TrendingUp, ShoppingCart, AlertCircle, PackageCheck, ArrowUpRight, Plus, RefreshCw } from 'lucide-react'
@@ -238,8 +239,69 @@ export function AdminDashboardPage() {
               </div>
             </Card>
           </div>
-
         </div>
+
+        {/* Registered Merchants & Users Directory (Admin Portal) */}
+        <Card className="p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-champagne-border pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-brand font-poppins flex items-center gap-2">
+                Merchant Accounts & Users Directory
+              </h3>
+              <p className="text-[11px] text-[var(--sc-muted)]">
+                Registered platform users, owner profiles and staff credentials saved in StoreKraft
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand/10 text-brand self-start sm:self-auto">
+              {(useAuthStore.getState().users || []).length} Registered Accounts
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-champagne-border text-[var(--sc-muted)] uppercase text-[10px] tracking-wider">
+                  <th className="py-2.5 px-3">Merchant / Name</th>
+                  <th className="py-2.5 px-3">Username / Email</th>
+                  <th className="py-2.5 px-3">Role</th>
+                  <th className="py-2.5 px-3">Store Name</th>
+                  <th className="py-2.5 px-3">Joined Date</th>
+                  <th className="py-2.5 px-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-champagne-border">
+                {(useAuthStore.getState().users || []).map((u) => (
+                  <tr key={u.id} className="hover:bg-champagne-card/50 transition-colors">
+                    <td className="py-3 px-3 font-semibold text-brand">
+                      {u.name || 'Merchant'}
+                    </td>
+                    <td className="py-3 px-3 text-[var(--sc-muted)] font-mono text-[11px]">
+                      {u.email || u.username}
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        u.role === 'owner' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {u.role || 'owner'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-[var(--sc-muted)]">
+                      {u.store_name || store?.name || 'StoreKraft Store'}
+                    </td>
+                    <td className="py-3 px-3 text-[var(--sc-muted)]">
+                      {u.createdAt || '2026-10-01'}
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-[11px]">
+                        Active
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
 
       </div>
     </AdminLayout>

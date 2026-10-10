@@ -1,60 +1,95 @@
-// Comprehensive Mock Dataset & Simulated Backend Engine for Launch-Your-Store
+// Comprehensive Mock Dataset & Simulated Backend Engine for StoreKraft
+import { analyzeStorePrompt } from './aiStoreAnalyzer'
 
 export const PREDEFINED_CATEGORIES = [
-  { id: 'cat-fashion', name: 'Fashion & Apparel', emoji: '👗', slug: 'fashion', icon: 'Shirt' },
-  { id: 'cat-electronics', name: 'Electronics & Gadgets', emoji: '⚡', slug: 'electronics', icon: 'Smartphone' },
-  { id: 'cat-home', name: 'Home Decor & Living', emoji: '🛋️', slug: 'home-decor', icon: 'Armchair' },
-  { id: 'cat-grocery', name: 'Gourmet & Grocery', emoji: '🥑', slug: 'grocery', icon: 'ShoppingBag' },
-  { id: 'cat-beauty', name: 'Beauty & Skincare', emoji: '✨', slug: 'beauty', icon: 'Sparkles' },
-  { id: 'cat-books', name: 'Books & Stationery', emoji: '📚', slug: 'books', icon: 'BookOpen' },
-  { id: 'cat-toys', name: 'Toys & Kids', emoji: '🧸', slug: 'toys', icon: 'Smile' },
-  { id: 'cat-jewellery', name: 'Fine Jewellery & Watches', emoji: '💍', slug: 'jewellery', icon: 'Watch' }
+  { id: 'cat-fashion', name: 'Fashion & Apparel', emoji: '', slug: 'fashion', icon: 'Shirt' },
+  { id: 'cat-electronics', name: 'Electronics & Gadgets', emoji: '', slug: 'electronics', icon: 'Smartphone' },
+  { id: 'cat-home', name: 'Home Decor & Living', emoji: '', slug: 'home-decor', icon: 'Armchair' },
+  { id: 'cat-grocery', name: 'Gourmet & Grocery', emoji: '', slug: 'grocery', icon: 'ShoppingBag' },
+  { id: 'cat-beauty', name: 'Beauty & Skincare', emoji: '', slug: 'beauty', icon: 'Sparkles' },
+  { id: 'cat-books', name: 'Books & Stationery', emoji: '', slug: 'books', icon: 'BookOpen' },
+  { id: 'cat-toys', name: 'Toys & Kids', emoji: '', slug: 'toys', icon: 'Smile' },
+  { id: 'cat-jewellery', name: 'Fine Jewellery & Watches', emoji: '', slug: 'jewellery', icon: 'Watch' }
 ];
 
 export const THEMES_METADATA = [
   {
+    id: 'emerald',
+    name: 'Emerald & Champagne',
+    tagline: 'Signature luxury with Emerald Ink, warm champagne and gold accents',
+    font: 'Poppins + Inter',
+    radius: '10px',
+    heroStyle: 'Warm split hero with gold accents',
+    cardStyle: 'Clay card with champagne border',
+    accentColor: '#064E3B',
+    secondaryColor: '#F8E7C9',
+    accentHighlight: '#D97706',
+    bgPreview: 'bg-[#F8E7C9] text-[#064E3B] border-[#E8D5AE]'
+  },
+  {
+    id: 'midnight',
+    name: 'Midnight Teal & Violet',
+    tagline: 'Deep dark slate infused with electric teal and neon violet accents',
+    font: 'Space Grotesk',
+    radius: '10px',
+    heroStyle: 'Futuristic ambient glow',
+    cardStyle: 'High-contrast dark slate tile',
+    accentColor: '#0D9488',
+    secondaryColor: '#8B5CF6',
+    accentHighlight: '#38BDF8',
+    bgPreview: 'bg-[#0F172A] text-slate-100 border-slate-700'
+  },
+  {
+    id: 'rose',
+    name: 'Rose Gold & Obsidian',
+    tagline: 'Haute couture luxury pairing obsidian noir with blush rose gold',
+    font: 'Playfair Display + Inter',
+    radius: '8px',
+    heroStyle: 'Atmospheric moody editorial banner',
+    cardStyle: 'Delicate rose borders with dark surface',
+    accentColor: '#FB7185',
+    secondaryColor: '#18181B',
+    accentHighlight: '#F43F5E',
+    bgPreview: 'bg-[#18181B] text-rose-50 border-rose-900/30'
+  },
+  {
     id: 'minimal',
-    name: 'Minimal',
-    tagline: 'Clean, typography-focused, modern essentials',
+    name: 'Nordic Minimalist',
+    tagline: 'Clean, typography-focused monochrome with crisp contrast',
     font: 'Inter',
     radius: '4px',
     heroStyle: 'Centered with spotlight item',
     cardStyle: 'Flat with subtle border',
-    accentColor: '#18181b',
+    accentColor: '#111827',
+    secondaryColor: '#F9FAFB',
+    accentHighlight: '#4B5563',
     bgPreview: 'bg-white text-zinc-900 border-zinc-200'
   },
   {
-    id: 'vibrant',
-    name: 'Vibrant',
-    tagline: 'Playful gradients, energetic curves, trendy fashion',
-    font: 'Poppins',
-    radius: '16px',
-    heroStyle: 'Split hero with gradient badge',
-    cardStyle: 'Curved pill styling & hover float',
-    accentColor: '#d946ef',
-    bgPreview: 'bg-fuchsia-50 text-purple-950 border-purple-200'
-  },
-  {
-    id: 'elegant',
-    name: 'Elegant',
-    tagline: 'Warm cream luxury, serif headings, handcrafted goods',
+    id: 'amber',
+    name: 'Sunset Amber & Espresso',
+    tagline: 'Warm terracotta, rich espresso and luminous amber gold',
     font: 'Playfair Display + Lato',
     radius: '8px',
-    heroStyle: 'Full-bleed atmospheric banner',
-    cardStyle: 'Delicate gold/olive borders',
-    accentColor: '#14532d',
-    bgPreview: 'bg-[#fbf9f5] text-stone-900 border-stone-200'
+    heroStyle: 'Warm earthy gradient with ambient glow',
+    cardStyle: 'Earthy cream border with warm clay shadow',
+    accentColor: '#F59E0B',
+    secondaryColor: '#292524',
+    accentHighlight: '#EA580C',
+    bgPreview: 'bg-[#FAF5EF] text-stone-900 border-amber-200'
   },
   {
-    id: 'midnight',
-    name: 'Midnight',
-    tagline: 'Sleek dark slate, neon teal accents, tech & gadgets',
-    font: 'Space Grotesk',
-    radius: '10px',
-    heroStyle: 'Futuristic glowing grid',
-    cardStyle: 'Glassmorphism dark tile',
-    accentColor: '#14b8a6',
-    bgPreview: 'bg-[#090d16] text-slate-100 border-slate-800'
+    id: 'ocean',
+    name: 'Ocean Azure & Frost',
+    tagline: 'Deep nautical navy, radiant cyan and cool frost surfaces',
+    font: 'Poppins + Inter',
+    radius: '12px',
+    heroStyle: 'Fluid gradient hero with aquatic accents',
+    cardStyle: 'Frost surface with crisp cyan highlights',
+    accentColor: '#0284C7',
+    secondaryColor: '#0C4A6E',
+    accentHighlight: '#06B6D4',
+    bgPreview: 'bg-[#F0F9FF] text-sky-950 border-sky-200'
   }
 ];
 
@@ -331,61 +366,24 @@ export const INITIAL_DEMO_STORE = {
   content: {
     heroTitle: 'Objects Crafted with Purpose & Soul',
     heroSubtitle: 'Discover sustainably sourced artisan essentials for everyday living, shipped straight to your doorstep.',
-    heroBadge: '✨ Spring 2026 Collection Live',
+    heroBadge: 'Spring Collection Live',
     heroCta: 'Explore Catalog',
-    announcement: '🌿 Free express shipping on all orders over ₹1,999 with code VIBES'
+    announcement: 'Free express shipping on all orders over ₹1,999 with code VIBES'
   }
 };
 
 // Simulated AI Setup Endpoint Mock (FastAPI POST /ai/setup-suggestions)
 export function getAISetupSuggestions(description) {
-  const desc = (description || '').toLowerCase();
-  
-  if (desc.includes('tech') || desc.includes('gadget') || desc.includes('code') || desc.includes('electr')) {
-    return {
-      categories: [
-        { name: 'Electronics & Gadgets', emoji: '⚡' },
-        { name: 'Workspace Accessories', emoji: '💻' }
-      ],
-      tagline: 'Cutting-edge gear engineered for modern high-performance creators.',
-      theme_id: 'midnight',
-      theme_name: 'Midnight'
-    };
-  }
-  
-  if (desc.includes('cloth') || desc.includes('fashion') || desc.includes('wear') || desc.includes('dress') || desc.includes('street')) {
-    return {
-      categories: [
-        { name: 'Fashion & Apparel', emoji: '👗' },
-        { name: 'Fine Jewellery & Watches', emoji: '💍' }
-      ],
-      tagline: 'Bold, expressive silhouettes designed to stand out everywhere.',
-      theme_id: 'vibrant',
-      theme_name: 'Vibrant'
-    };
-  }
-
-  if (desc.includes('book') || desc.includes('art') || desc.includes('home') || desc.includes('decor') || desc.includes('craft') || desc.includes('ceramic')) {
-    return {
-      categories: [
-        { name: 'Home Decor & Living', emoji: '🛋️' },
-        { name: 'Books & Stationery', emoji: '📚' }
-      ],
-      tagline: 'Timeless handmade treasures that transform every room.',
-      theme_id: 'elegant',
-      theme_name: 'Elegant'
-    };
-  }
-
-  // Default clean suggestion
+  const analysis = analyzeStorePrompt(description);
   return {
-    categories: [
-      { name: 'Home Decor & Living', emoji: '🛋️' },
-      { name: 'Gourmet & Grocery', emoji: '🥑' }
-    ],
-    tagline: 'Simple, premium essentials delivered straight to your door.',
-    theme_id: 'minimal',
-    theme_name: 'Minimal'
+    name: analysis.name,
+    slug: analysis.slug,
+    categories: analysis.categories.map(name => ({ name, emoji: '' })),
+    tagline: analysis.tagline,
+    theme_id: analysis.theme_id,
+    theme_name: analysis.theme_id,
+    colors: analysis.colors,
+    summary: analysis.analysisSummary
   };
 }
 

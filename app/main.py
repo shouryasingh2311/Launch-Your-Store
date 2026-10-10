@@ -27,9 +27,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI(
-    title="Storecraft API",
-    description="Multi-tenant backend for Storecraft — no-code e-commerce store builder with AI assistant.",
-    version="2.0.0",
+    title="StoreKraft API",
+    description="Multi-tenant backend for StoreKraft — no-code e-commerce store builder with AI assistant.",
+    version="2.1.0",
     lifespan=lifespan,
 )
 

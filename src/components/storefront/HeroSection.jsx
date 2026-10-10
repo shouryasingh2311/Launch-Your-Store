@@ -68,7 +68,7 @@ export function HeroSection({ store, onExploreClick }) {
                   className="w-full h-80 object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-purple-950/70 via-transparent to-transparent flex items-end p-6">
-                  <p className="text-white text-sm font-medium">✨ Authentic verified designer drops</p>
+                  <p className="text-white text-sm font-medium">Authentic verified designer drops</p>
                 </div>
               </div>
             </div>

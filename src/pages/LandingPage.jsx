@@ -1,188 +1,182 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, Store, LayoutDashboard, Wand2, ShoppingBag, Zap, Bot, Palette, CheckCircle2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, Store, LayoutDashboard, ShoppingBag, Palette, Sliders, Shield, LogOut } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { useStoreData } from '../store/useStoreData'
+import { useAuthStore } from '../store/useAuthStore'
 
-const FEATURES = [
-  {
-    icon: Wand2,
-    title: 'AI-Powered Setup',
-    desc: 'Describe your business in one line. AI drafts your store name, categories and theme automatically.'
-  },
+const COMMERCIAL_CAPABILITIES = [
   {
     icon: Palette,
-    title: 'Full Theme Customiser',
-    desc: 'Live phone preview as you change fonts, colours and button shapes. No design skills required.'
+    title: 'Precision Brand Theming',
+    desc: 'Live mobile preview with real-time controls for multi-color palettes, typography, button radius, and mobile layout positions.'
   },
   {
     icon: ShoppingBag,
-    title: 'Complete Storefront',
-    desc: 'Responsive hero, category filters, product grid, cart drawer and checkout — all included.'
+    title: 'High-Converting Storefront',
+    desc: 'Instant tenant store with responsive category filters, product discovery modal, slide-out cart drawer, and seamless checkout.'
   },
   {
     icon: LayoutDashboard,
-    title: 'Merchant Admin',
-    desc: 'Analytics, inventory CRUD, order management, and team roles in one clean dashboard.'
+    title: 'Merchant Command Center',
+    desc: 'Comprehensive operational dashboard with gross revenue metrics, low-stock threshold triggers, and real-time inventory management.'
   },
   {
-    icon: Bot,
-    title: 'AI Store Assistant',
-    desc: 'Ask "What is my revenue this week?" and get data-backed answers — never hallucinated figures.'
+    icon: Sliders,
+    title: 'Flexible Catalog Operations',
+    desc: 'Seed instant demo collections, import bulk CSV/Excel product catalogs with error validation, or use rapid manual cataloguing.'
   },
   {
-    icon: Zap,
-    title: 'Live in 3 Minutes',
-    desc: 'Unique public URL the moment you finish the wizard. Share it, QR it, print it.'
+    icon: Shield,
+    title: 'Role-Based Authentication',
+    desc: 'Strict multi-tier security separating owner administration and staff operations with persistent session isolation.'
   },
+  {
+    icon: Store,
+    title: 'Instant Production Deployment',
+    desc: 'Generate a dedicated store URL with built-in QR code sharing for packaging, social commerce, and immediate sales.'
+  }
 ]
 
 export function LandingPage() {
+  const navigate = useNavigate()
   const { store } = useStoreData()
+  const { user, isAuthenticated, logout } = useAuthStore()
+
+  const handleAdminClick = () => {
+    if (isAuthenticated && user?.role === 'owner') {
+      navigate('/admin/dashboard')
+    } else {
+      navigate('/login?redirect=/admin/dashboard')
+    }
+  }
+
+  const handleMakeYourOwnClick = () => {
+    if (isAuthenticated) {
+      navigate('/onboarding')
+    } else {
+      navigate('/signup?redirect=/onboarding')
+    }
+  }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--sc-champagne)' }}>
+    <div className="min-h-screen flex flex-col justify-between" style={{ background: 'var(--sc-champagne)' }}>
 
-      {/* ── Navigation ───────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-champagne-card/80 backdrop-blur-md border-b border-champagne-border">
+      {/* ── Header ────────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-champagne-card/90 backdrop-blur-md border-b border-champagne-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
-          {/* Logo wordmark */}
+          {/* Wordmark */}
           <Link to="/" className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-lg">
             <div className="h-9 w-9 rounded-xl bg-brand flex items-center justify-center font-black text-champagne text-sm shadow-clay-btn">
-              SC
+              SK
             </div>
             <div>
               <span className="font-poppins font-bold text-brand text-base block leading-tight tracking-tight">
-                Storecraft
+                StoreKraft
               </span>
               <span className="text-[10px] text-[var(--sc-muted)] leading-none">Craft your store in minutes</span>
             </div>
           </Link>
 
+          {/* Navigation Controls */}
           <nav className="flex items-center gap-2">
-            <Link to="/login" className="text-xs font-semibold text-[var(--sc-muted)] hover:text-brand transition-colors px-3 py-2">
-              Sign In
-            </Link>
-            <Link to="/admin/dashboard">
-              <Button size="sm" variant="secondary" className="text-xs">
-                Admin
-              </Button>
-            </Link>
-            <Link to="/onboarding">
-              <Button size="sm" className="text-xs font-bold">
-                Make your own <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <span className="hidden sm:inline text-xs font-semibold text-brand px-2">
+                  {user?.name} ({user?.role?.toUpperCase()})
+                </span>
+                <Button size="sm" variant="secondary" onClick={handleAdminClick} className="text-xs">
+                  Admin Portal
+                </Button>
+                <Button size="sm" onClick={handleMakeYourOwnClick} className="text-xs font-bold">
+                  Store Setup <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+                <button
+                  onClick={logout}
+                  title="Sign Out"
+                  className="p-2 text-[var(--sc-muted)] hover:text-brand transition-colors rounded-lg"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-xs font-semibold text-[var(--sc-muted)] hover:text-brand transition-colors px-3 py-2">
+                  Sign In
+                </Link>
+                <Button size="sm" variant="secondary" onClick={handleAdminClick} className="text-xs">
+                  Admin
+                </Button>
+                <Button size="sm" onClick={handleMakeYourOwnClick} className="text-xs font-bold">
+                  Make your own <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
 
-      {/* ── Hero ─────────────────────────────────────────── */}
-      <main className="flex-1">
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
-
-          {/* Eye-catch badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold
-            bg-brand/10 text-brand border border-brand/20 mb-8">
-            <Wand2 className="h-3.5 w-3.5" />
-            AI-first no-code store builder
-          </div>
-
-          <h1 className="font-poppins font-extrabold text-4xl sm:text-6xl lg:text-7xl text-brand
-            tracking-tight leading-[1.08] max-w-4xl mx-auto">
-            Your store,<br />
+      {/* ── Main Hero & Compact Overview ─────────────────── */}
+      <main className="flex-1 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="text-center space-y-4 max-w-3xl mx-auto">
+          <h1 className="font-poppins font-extrabold text-3xl sm:text-5xl lg:text-6xl text-brand tracking-tight leading-[1.12]">
+            Your commercial store,<br />
             <span className="relative inline-block">
               <span className="relative z-10">crafted in minutes.</span>
-              <span className="absolute -bottom-2 left-0 right-0 h-3 bg-brand/15 rounded-full -z-0 blur-sm" />
+              <span className="absolute -bottom-1.5 left-0 right-0 h-2.5 bg-brand/15 rounded-full -z-0 blur-sm" />
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg text-[var(--sc-muted)] max-w-xl mx-auto mt-6 leading-relaxed">
-            Tell us what you sell. Storecraft asks a few quick questions, then hands you a fully themed, live storefront and merchant dashboard — zero code.
+          <p className="text-sm sm:text-base text-[var(--sc-muted)] max-w-2xl mx-auto leading-relaxed">
+            The complete no-code e-commerce platform built for modern retail. Configure branding, curate products, and launch your tenant storefront with integrated merchant operations.
           </p>
 
-          {/* Primary CTA */}
-          <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
-            <Link to="/onboarding">
-              <Button size="lg" className="font-bold text-sm px-8">
-                Make your own <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-            <Link to={`/s/${store?.slug}`}>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Button size="lg" onClick={handleMakeYourOwnClick} className="font-bold text-sm px-8">
+              Make your own <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+            <Link to={`/s/${store?.slug || 'craft-haven'}`}>
               <Button size="lg" variant="secondary" className="text-sm px-6">
                 <Store className="h-4 w-4 mr-2" />
-                See demo store
+                Live Demo Store
               </Button>
             </Link>
           </div>
+        </div>
 
-          {/* Social proof strip */}
-          <div className="flex flex-wrap justify-center gap-6 mt-14 text-xs text-[var(--sc-muted)]">
-            {['No credit card', 'Live in 3 minutes', 'AI setup included', 'Full admin dashboard'].map(f => (
-              <span key={f} className="flex items-center gap-1.5 font-medium">
-                <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                {f}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Feature grid ────────────────────────────────── */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-          <div className="text-center mb-12">
-            <h2 className="font-poppins font-bold text-2xl sm:text-3xl text-brand">
-              Everything you need, nothing you don't
-            </h2>
-            <p className="text-sm text-[var(--sc-muted)] mt-2">
-              All 15 hackathon checkpoints shipped and verified.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="clay-card p-6 space-y-3 hover:scale-[1.01] transition-transform duration-200">
-                <div className="h-10 w-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h3 className="font-poppins font-semibold text-sm text-brand">{title}</h3>
-                <p className="text-xs text-[var(--sc-muted)] leading-relaxed">{desc}</p>
+        {/* ── Commercial Capability Cards ────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
+          {COMMERCIAL_CAPABILITIES.map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="clay-card p-5 space-y-2.5 transition-all duration-200 hover:border-brand/40">
+              <div className="h-9 w-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center">
+                <Icon className="h-4 w-4" />
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Bottom CTA strip ────────────────────────────── */}
-        <section className="bg-brand">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-center space-y-6">
-            <h2 className="font-poppins font-extrabold text-2xl sm:text-4xl text-champagne">
-              Ready to open your store?
-            </h2>
-            <p className="text-sm text-champagne/75 max-w-md mx-auto">
-              No setup fees. No designer. Just type what you sell and we'll handle the rest.
-            </p>
-            <Link to="/onboarding">
-              <Button
-                size="lg"
-                className="bg-[var(--sc-champagne)] text-[var(--sc-ink)] hover:bg-champagne-card font-bold text-sm px-10
-                  shadow-[0_3px_0_0_rgba(255,255,255,0.4)] active:shadow-none"
-              >
-                Make your own <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </section>
+              <h2 className="font-poppins font-semibold text-sm text-brand">{title}</h2>
+              <p className="text-xs text-[var(--sc-muted)] leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
       </main>
 
-      {/* ── Footer ───────────────────────────────────────── */}
-      <footer className="border-t border-champagne-border py-8 text-center text-xs text-[var(--sc-muted)]">
-        <p>
-          Storecraft — Built with React 18, Vite, Tailwind CSS · Cypher Hackathon
-          &nbsp;·&nbsp;
-          <Link to="/admin/dashboard" className="hover:text-brand transition-colors">Admin</Link>
-          &nbsp;·&nbsp;
-          <Link to={`/s/${store?.slug}`} className="hover:text-brand transition-colors">Demo store</Link>
-        </p>
+      {/* ── Footer ────────────────────────────────────────── */}
+      <footer className="border-t border-champagne-border py-5 bg-champagne-card/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--sc-muted)]">
+          <p>© 2026 StoreKraft Technologies Inc. Commercial Store Platform.</p>
+          <div className="flex items-center gap-4">
+            <button onClick={handleAdminClick} className="hover:text-brand transition-colors font-medium">
+              Admin Portal
+            </button>
+            <span>·</span>
+            <Link to={`/s/${store?.slug || 'craft-haven'}`} className="hover:text-brand transition-colors font-medium">
+              Demo Storefront
+            </Link>
+            <span>·</span>
+            <button onClick={handleMakeYourOwnClick} className="hover:text-brand transition-colors font-medium">
+              Create Store
+            </button>
+          </div>
+        </div>
       </footer>
     </div>
   )

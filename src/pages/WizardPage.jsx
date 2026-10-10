@@ -1,115 +1,72 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { HexColorPicker } from 'react-colorful'
 import {
   Sparkles, Check, ArrowRight, ArrowLeft, Upload,
   FileSpreadsheet, AlertTriangle, ExternalLink, Copy,
   CheckCircle2, QrCode, RotateCcw, Image, ChevronDown,
-  Palette, Monitor, Smartphone, RefreshCw
+  Palette, Monitor, Smartphone, RefreshCw, Plus, Package,
+  Send, Bot, Layout, Sliders
 } from 'lucide-react'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { useToast } from '../components/ui/Toast'
-import { PREDEFINED_CATEGORIES, THEMES_METADATA, getAISetupSuggestions } from '../lib/mockData'
+import { PREDEFINED_CATEGORIES, THEMES_METADATA } from '../lib/mockData'
+import { analyzeStorePrompt } from '../lib/aiStoreAnalyzer'
 import { LivePhonePreview } from '../components/wizard/LivePhonePreview'
 import { useStoreData } from '../store/useStoreData'
+import { useAuthStore } from '../store/useAuthStore'
 import { api } from '../lib/api'
 import confetti from 'canvas-confetti'
 import { cn } from '../lib/utils'
 
-// ── Default theme overrides (empty = base theme) ──────────
-const defaultOverrides = () => ({
-  colors: {},
-  background: { type: 'solid', color: '', gradient: { from: '', to: '', angle: 135 }, heroImageUrl: '' },
-  button: { radius: 'rounded', style: 'filled', shadow: true },
-  fonts: { heading: '', body: '' }
-})
-
-// ── Follow-up questions for AI Discovery ─────────────────
-const FOLLOWUP_QUESTIONS = [
-  {
-    id: 'what_sell',
-    question: 'What do you mainly sell?',
-    chips: ['Clothes & Accessories', 'Home Decor', 'Food & Groceries', 'Electronics', 'Beauty & Wellness', 'Handmade Crafts']
-  },
-  {
-    id: 'who_customer',
-    question: 'Who are your main customers?',
-    chips: ['General public', 'Young adults (18–30)', 'Families', 'Businesses', 'Gift shoppers']
-  },
-  {
-    id: 'vibe',
-    question: 'What vibe best describes your brand?',
-    chips: ['Clean & minimal', 'Bold & vibrant', 'Luxury & elegant', 'Fun & colourful', 'Dark & premium']
-  },
-  {
-    id: 'store_name',
-    question: 'Do you have a store name in mind?',
-    chips: ['Not yet — suggest one', 'Yes, I\'ll type it below']
-  }
+const QUICK_SUGGESTIONS = [
+  'Minimalist Ceramic & Pottery Studio',
+  'Organic Specialty Coffee Roasters',
+  'Contemporary Streetwear & Apparel',
+  'Handcrafted Leather Goods & Bags',
+  'Botanical Skincare & Wellness',
+  'Modern Ergonomic Workspace Gear'
 ]
 
 const HEADING_FONTS = ['Poppins', 'Inter', 'Playfair Display', 'Space Grotesk', 'Lato', 'Montserrat']
 const BODY_FONTS = ['Inter', 'Poppins', 'Lato', 'Space Grotesk', 'Open Sans', 'Roboto']
 
-// ── Contrast ratio checker (WCAG) ────────────────────────
-function relativeLuminance(hex) {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  const toLinear = c => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
-}
-
-function contrastRatio(hex1, hex2) {
-  const l1 = relativeLuminance(hex1)
-  const l2 = relativeLuminance(hex2)
-  const light = Math.max(l1, l2)
-  const dark = Math.min(l1, l2)
-  return (light + 0.05) / (dark + 0.05)
-}
+const defaultOverrides = () => ({
+  colors: {},
+  background: { type: 'solid', color: '', gradient: { from: '', to: '', angle: 135 }, heroImageUrl: '' },
+  button: { radius: 'rounded', position: 'hero', style: 'filled', shadow: true },
+  fonts: { heading: '', body: '' }
+})
 
 function isValidHex(hex) {
   return /^#[0-9A-Fa-f]{6}$/.test(hex)
 }
 
-// ── Color picker control ──────────────────────────────────
-function ColorControl({ label, value, onChange, contrastWith, onReset }) {
+function ColorControl({ label, value, onChange, onReset }) {
   const [open, setOpen] = useState(false)
   const [hexInput, setHexInput] = useState(value || '')
   const ref = useRef(null)
 
   useEffect(() => { setHexInput(value || '') }, [value])
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const hasContrast = contrastWith && isValidHex(value) && isValidHex(contrastWith)
-  const ratio = hasContrast ? contrastRatio(value, contrastWith) : null
-  const contrastFail = ratio !== null && ratio < 4.5
-
   return (
     <div className="space-y-1.5" ref={ref}>
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-[var(--sc-ink)] uppercase tracking-wide">{label}</label>
-        <div className="flex items-center gap-1">
-          {contrastFail && (
-            <span className="text-[10px] text-orange-700 bg-orange-100 rounded px-1.5 py-0.5 font-medium">
-              Contrast {ratio.toFixed(1)}:1 ⚠
-            </span>
-          )}
-          {onReset && (
-            <button onClick={onReset} className="text-[var(--sc-muted)] hover:text-[var(--sc-ink)] p-1 rounded" title="Reset to theme default">
-              <RotateCcw className="h-3 w-3" />
-            </button>
-          )}
-        </div>
+        {onReset && (
+          <button onClick={onReset} className="text-[var(--sc-muted)] hover:text-[var(--sc-ink)] p-1 rounded" title="Reset to default">
+            <RotateCcw className="h-3 w-3" />
+          </button>
+        )}
       </div>
       <div className="flex gap-2 items-center">
         <button
@@ -142,7 +99,6 @@ function ColorControl({ label, value, onChange, contrastWith, onReset }) {
   )
 }
 
-// ── Image Upload control ──────────────────────────────────
 function ImageUploadControl({ label, value, onChange }) {
   const inputRef = useRef(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -153,6 +109,7 @@ function ImageUploadControl({ label, value, onChange }) {
     try {
       const dataUrl = await api.uploadImage(file)
       onChange(dataUrl)
+      toast.success('Image Uploaded', 'Logo attached successfully.')
     } catch (err) {
       toast.error('Upload failed', err.message)
     } finally {
@@ -173,43 +130,57 @@ function ImageUploadControl({ label, value, onChange }) {
           <img src={value} alt="Preview" className="max-h-20 max-w-full rounded-lg object-contain" />
         ) : (
           <div className="flex flex-col items-center gap-1 text-[var(--sc-muted)]">
-            <Image className="h-8 w-8 opacity-50" />
-            <span className="text-xs">Click or drag to upload</span>
+            <Image className="h-7 w-7 opacity-50" />
+            <span className="text-xs font-medium">Click or drag logo to upload</span>
             <span className="text-[10px]">JPEG, PNG, WebP — max 5 MB</span>
           </div>
         )}
-        {isUploading && <span className="text-xs text-brand">Uploading…</span>}
+        {isUploading && <span className="text-xs text-brand font-medium">Processing upload…</span>}
       </div>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]) }} />
       {value && (
-        <button onClick={() => onChange('')} className="text-[10px] text-[var(--sc-muted)] hover:text-[var(--sc-danger)]">
-          Remove image
+        <button onClick={() => onChange('')} className="text-[10px] text-[var(--sc-muted)] hover:text-red-700">
+          Remove logo
         </button>
       )}
     </div>
   )
 }
 
-// ── Main WizardPage ───────────────────────────────────────
 export function WizardPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
-  const { updateStore, importDummyProducts } = useStoreData()
+  const { updateStore, importDummyProducts, addProduct } = useStoreData()
+  const { user, isAuthenticated } = useAuthStore()
+
+  // Authentication gate: enforce login/signup before store setup
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate(`/signup?redirect=${encodeURIComponent(location.pathname)}`)
+    }
+  }, [isAuthenticated, location.pathname, navigate])
 
   const [currentStep, setCurrentStep] = useState(1)
 
-  // ── Step 1: AI Discovery state ────────────────────────
-  const [discoveryPhase, setDiscoveryPhase] = useState('input') // 'input' | 'questions' | 'done'
+  // ── Step 1: AI Chat Discovery ────────────────────────
   const [aiPrompt, setAiPrompt] = useState('')
   const [isAiLoading, setIsAiLoading] = useState(false)
-  const [followupIndex, setFollowupIndex] = useState(0)
-  const [followupAnswers, setFollowupAnswers] = useState({})
-  const [freeTextAnswer, setFreeTextAnswer] = useState('')
+  const [chatMessages, setChatMessages] = useState([
+    {
+      sender: 'ai',
+      text: 'Hello! I am your StoreKraft AI architect. Describe what you want to sell or tap a suggestion below, and I will generate your brand name, tagline, categories, and theme palette.'
+    }
+  ])
 
-  // ── Wizard data ──────────────────────────────────────
+  // ── Step 2: Available Categories State ────────────────
+  const [availableCategories, setAvailableCategories] = useState(PREDEFINED_CATEGORIES)
+  const [customCatInput, setCustomCatInput] = useState('')
+
+  // ── Wizard Data ──────────────────────────────────────
   const [wizardData, setWizardData] = useState(() => {
     try {
-      const saved = localStorage.getItem('sc_wizard_draft')
+      const saved = localStorage.getItem('sk_wizard_draft')
       if (saved) return JSON.parse(saved)
     } catch {}
     return {
@@ -221,16 +192,15 @@ export function WizardPage() {
       phone: '',
       address: '',
       logo_url: '',
-      categories: [],
-      theme_id: 'minimal',
+      categories: ['Featured Collection', 'Best Sellers'],
+      theme_id: 'emerald',
       theme_overrides: defaultOverrides(),
       importedProductsCount: 0
     }
   })
 
-  // Auto-save draft
   useEffect(() => {
-    localStorage.setItem('sc_wizard_draft', JSON.stringify(wizardData))
+    localStorage.setItem('sk_wizard_draft', JSON.stringify(wizardData))
   }, [wizardData])
 
   const patchWizard = useCallback((patch) => setWizardData(prev => ({ ...prev, ...patch })), [])
@@ -241,81 +211,91 @@ export function WizardPage() {
     }))
   }, [])
 
-  // ── Step 1: Send initial prompt ──────────────────────
-  const handleStartDiscovery = async () => {
-    if (!aiPrompt.trim()) return
+  // ── AI Prompt Analysis Execution ─────────────────────
+  const handleAnalyzePrompt = async (promptText) => {
+    const textToAnalyze = promptText || aiPrompt
+    if (!textToAnalyze.trim()) {
+      toast.warning('Input Required', 'Please describe your store concept or pick a suggestion.')
+      return
+    }
+
     setIsAiLoading(true)
+
+    // Add user message to thread
+    setChatMessages(prev => [...prev, { sender: 'user', text: textToAnalyze }])
+
     try {
-      // Try real API first
-      const suggestions = await api.getAISetupSuggestions(aiPrompt)
-      if (suggestions?.categories) {
-        applyAISuggestions(suggestions)
-        setDiscoveryPhase('done')
-        setIsAiLoading(false)
-        return
+      // 1. Try backend AI endpoint if available
+      let analysisResult = null
+      try {
+        const apiRes = await api.getAISetupSuggestions(textToAnalyze)
+        if (apiRes && apiRes.categories) {
+          analysisResult = {
+            name: apiRes.name || '',
+            slug: apiRes.slug || '',
+            tagline: apiRes.tagline || '',
+            categories: (apiRes.categories || []).map(c => typeof c === 'string' ? c : c.name),
+            theme_id: apiRes.theme_id || 'emerald',
+            colors: apiRes.colors || {},
+            analysisSummary: apiRes.summary || `Extracted tailored store concepts for "${textToAnalyze}".`
+          }
+        }
+      } catch {
+        // Backend offline -> run high-fidelity client-side analyzer
       }
-    } catch {
-      // fall through to follow-up questions
-    }
-    setIsAiLoading(false)
-    setDiscoveryPhase('questions')
-    setFollowupIndex(0)
-  }
 
-  const applyAISuggestions = (suggestions) => {
-    patchWizard({
-      tagline: suggestions.tagline || wizardData.tagline,
-      theme_id: suggestions.theme_id || wizardData.theme_id,
-      categories: (suggestions.categories || []).map(c => typeof c === 'string' ? c : c.name)
-    })
-  }
+      if (!analysisResult) {
+        analysisResult = analyzeStorePrompt(textToAnalyze)
+      }
 
-  // ── Step 1: Answer a follow-up question ──────────────
-  const handleChipAnswer = (qid, answer) => {
-    const updated = { ...followupAnswers, [qid]: answer }
-    setFollowupAnswers(updated)
-    if (followupIndex < FOLLOWUP_QUESTIONS.length - 1) {
-      setFollowupIndex(i => i + 1)
-    } else {
-      finishFollowup(updated)
-    }
-  }
+      // 2. Apply to wizard state
+      const finalName = analysisResult.name || wizardData.name || 'StoreKraft Studio'
+      const finalSlug = analysisResult.slug || finalName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
-  const handleFreeTextNext = () => {
-    if (!freeTextAnswer.trim()) return
-    const q = FOLLOWUP_QUESTIONS[followupIndex]
-    const updated = { ...followupAnswers, [q.id]: freeTextAnswer }
-    setFollowupAnswers(updated)
-    setFreeTextAnswer('')
-    if (followupIndex < FOLLOWUP_QUESTIONS.length - 1) {
-      setFollowupIndex(i => i + 1)
-    } else {
-      finishFollowup(updated)
-    }
-  }
+      patchWizard({
+        name: finalName,
+        slug: finalSlug,
+        tagline: analysisResult.tagline || wizardData.tagline,
+        categories: analysisResult.categories || wizardData.categories,
+        theme_id: analysisResult.theme_id || wizardData.theme_id,
+        theme_overrides: {
+          ...wizardData.theme_overrides,
+          colors: {
+            ...wizardData.theme_overrides.colors,
+            ...(analysisResult.colors || {})
+          }
+        }
+      })
 
-  const finishFollowup = (answers) => {
-    setIsAiLoading(true)
-    setTimeout(() => {
-      const combinedPrompt = `${aiPrompt}. ${Object.values(answers).join('. ')}`
-      const suggestions = getAISetupSuggestions(combinedPrompt)
-      const storeName = answers.store_name && !answers.store_name.toLowerCase().includes('suggest')
-        ? answers.store_name
-        : suggestions.name || ''
-      applyAISuggestions(suggestions)
-      if (storeName) {
-        patchWizard({
-          name: storeName,
-          slug: storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      // Add to available categories if any new ones generated
+      if (analysisResult.categories?.length) {
+        setAvailableCategories(prev => {
+          const existingNames = prev.map(c => c.name.toLowerCase())
+          const newOnes = analysisResult.categories
+            .filter(catName => !existingNames.includes(catName.toLowerCase()))
+            .map(catName => ({ id: `cat-ai-${Date.now()}-${catName}`, name: catName, emoji: '', slug: catName.toLowerCase().replace(/[^a-z0-9]+/g, '-') }))
+          return [...prev, ...newOnes]
         })
       }
+
+      // Add AI reply to chat thread
+      setChatMessages(prev => [
+        ...prev,
+        {
+          sender: 'ai',
+          text: `Analyzed your prompt! I drafted brand "${finalName}" with tagline "${analysisResult.tagline}". Curated ${analysisResult.categories?.length || 4} targeted categories and configured the "${analysisResult.theme_id}" multi-color aesthetic. Review details in the card on the right.`
+        }
+      ])
+
+      toast.success('Store Generated', `Configured "${finalName}".`)
+    } catch (err) {
+      toast.error('Analysis error', err.message)
+    } finally {
       setIsAiLoading(false)
-      setDiscoveryPhase('done')
-      toast.success('Store drafted!', 'AI pre-filled your categories, tagline and theme. Edit anything below.')
-    }, 600)
+    }
   }
 
-  // ── Category toggle ──────────────────────────────────
+  // ── Step 2: Category Toggle & Custom Tag Addition ────
   const toggleCategory = (name) => {
     setWizardData(prev => {
       const exists = prev.categories.includes(name)
@@ -325,9 +305,29 @@ export function WizardPage() {
       }
     })
   }
-  const [customCat, setCustomCat] = useState('')
 
-  // ── Dummy import ─────────────────────────────────────
+  const handleAddCustomCategory = () => {
+    const trimmed = customCatInput.trim()
+    if (!trimmed) return
+
+    // 1. Add to available default tags list so it appears permanently
+    if (!availableCategories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      setAvailableCategories(prev => [
+        ...prev,
+        { id: `cat-custom-${Date.now()}`, name: trimmed, emoji: '', slug: trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-') }
+      ])
+    }
+
+    // 2. Toggle active selection
+    if (!wizardData.categories.includes(trimmed)) {
+      patchWizard({ categories: [...wizardData.categories, trimmed] })
+    }
+
+    setCustomCatInput('')
+    toast.success('Category Added', `"${trimmed}" added to default categories.`)
+  }
+
+  // ── Step 3: Product Catalog Operations ────────────────
   const [isImporting, setIsImporting] = useState(false)
   const handleImportDummy = () => {
     setIsImporting(true)
@@ -335,78 +335,156 @@ export function WizardPage() {
       const count = importDummyProducts()
       patchWizard({ importedProductsCount: count })
       setIsImporting(false)
-      toast.success('Catalog seeded!', `${count} demo products added with images and INR prices.`)
-    }, 500)
+      toast.success('Catalog Seeded', `${count} products added with INR pricing.`)
+    }, 400)
   }
 
-  // ── CSV ──────────────────────────────────────────────
-  const [csvFile, setCsvFile] = useState(null)
-  const [csvPreviewRows, setCsvPreviewRows] = useState(null)
+  // CSV & Excel sheet parser
+  const csvInputRef = useRef(null)
+  const [csvFileName, setCsvFileName] = useState('')
+  const [csvStats, setCsvStats] = useState(null)
   const [csvErrors, setCsvErrors] = useState([])
-  const handleSimulateCsvUpload = () => {
-    setCsvFile({ name: 'catalog_export_v1.csv' })
-    setCsvPreviewRows([
-      { row: 1, name: 'Handcrafted Ceramic Mug', price: '₹799', stock: '25', category: 'Home Decor' },
-      { row: 2, name: 'Artisan Linen Apron',     price: '₹1,299', stock: '14', category: 'Fashion' },
-      { row: 3, name: 'Scented Candle Amber',    price: 'Rs. 450', stock: 'Invalid', category: 'Home Decor' },
-      { row: 4, name: '',                         price: '₹899',  stock: '10', category: 'Gourmet' }
-    ])
-    setCsvErrors([
-      { row: 3, field: 'Stock', problem: "Non-integer 'Invalid'", fix: 'Set to 0 or valid integer' },
-      { row: 4, field: 'Name',  problem: 'Required field missing', fix: 'Row skipped' }
-    ])
-    toast.info('CSV analysed', '4 rows inspected: 2 valid, 2 fixable errors.')
-  }
 
-  // ── Theme customiser: undo/redo stack ────────────────
-  const [history, setHistory] = useState([defaultOverrides()])
-  const [historyIdx, setHistoryIdx] = useState(0)
-  const pushHistory = (overrides) => {
-    const next = history.slice(0, historyIdx + 1)
-    next.push(overrides)
-    setHistory(next)
-    setHistoryIdx(next.length - 1)
-  }
-  const undo = () => {
-    if (historyIdx > 0) {
-      const idx = historyIdx - 1
-      setHistoryIdx(idx)
-      patchOverrides(history[idx])
+  const handleCsvFileSelected = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setCsvFileName(file.name)
+    const reader = new FileReader()
+
+    reader.onload = (evt) => {
+      try {
+        const text = evt.target?.result
+        if (typeof text !== 'string') return
+
+        const lines = text.split(/\r\n|\n/).filter(line => line.trim().length > 0)
+        if (lines.length <= 1) {
+          toast.warning('Empty File', 'CSV file does not contain data rows.')
+          return
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''))
+        const validRows = []
+        const rowErrors = []
+
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/^["']|["']$/g, ''))
+          const rowObj = {}
+          headers.forEach((h, idx) => { rowObj[h] = values[idx] || '' })
+
+          const name = rowObj.name || rowObj.title || rowObj.product || ''
+          const rawPrice = (rowObj.price || '').replace(/[^0-9.]/g, '')
+          const price = parseFloat(rawPrice) || 0
+          const stock = parseInt(rowObj.stock || '10', 10)
+          const category = rowObj.category || 'General'
+
+          if (!name) {
+            rowErrors.push({ row: i, field: 'name', problem: 'Missing product name', fix: 'Skipped' })
+            continue
+          }
+          if (price <= 0) {
+            rowErrors.push({ row: i, field: 'price', problem: `Invalid price "${rowObj.price}"`, fix: 'Set default ₹499' })
+          }
+
+          validRows.push({
+            id: `csv-${Date.now()}-${i}`,
+            name,
+            price: price > 0 ? price : 499,
+            stock: isNaN(stock) ? 10 : stock,
+            categoryName: category,
+            description: rowObj.description || `${name} imported from CSV.`,
+            image_url: rowObj.image || rowObj.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80',
+            is_active: true
+          })
+        }
+
+        // Add valid products to store
+        validRows.forEach(item => addProduct(item))
+        patchWizard({ importedProductsCount: (wizardData.importedProductsCount || 0) + validRows.length })
+
+        setCsvStats({ total: lines.length - 1, valid: validRows.length, errors: rowErrors.length })
+        setCsvErrors(rowErrors)
+
+        toast.success('Catalog Imported', `Imported ${validRows.length} valid products from ${file.name}.`)
+      } catch (err) {
+        toast.error('CSV Parsing Error', err.message)
+      }
     }
+
+    reader.readAsText(file)
   }
-  const redo = () => {
-    if (historyIdx < history.length - 1) {
-      const idx = historyIdx + 1
-      setHistoryIdx(idx)
-      patchOverrides(history[idx])
+
+  // Manual Cataloguing state & modal
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [manualTitle, setManualTitle] = useState('')
+  const [manualPrice, setManualPrice] = useState('')
+  const [manualDesc, setManualDesc] = useState('')
+  const [manualImage, setManualImage] = useState('')
+
+  const handleSaveManualProduct = (e) => {
+    e.preventDefault()
+    if (!manualTitle.trim()) {
+      toast.warning('Title Required', 'Enter product name')
+      return
     }
-  }
 
-  const setColor = (key, val) => {
-    const next = {
-      ...wizardData.theme_overrides,
-      colors: { ...wizardData.theme_overrides.colors, [key]: val }
+    const priceNum = parseFloat(manualPrice) || 999
+    const newProd = {
+      id: `manual-${Date.now()}`,
+      name: manualTitle.trim(),
+      price: priceNum,
+      compare_at_price: Math.round(priceNum * 1.25),
+      stock: 25,
+      categoryName: wizardData.categories[0] || 'Catalog',
+      description: manualDesc.trim() || `${manualTitle.trim()} handcrafted quality.`,
+      image_url: manualImage || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80',
+      is_active: true
     }
-    patchOverrides(next)
-    pushHistory(next)
+
+    addProduct(newProd)
+    patchWizard({ importedProductsCount: (wizardData.importedProductsCount || 0) + 1 })
+    toast.success('Product Added', `"${manualTitle}" added to catalog.`)
+
+    // Reset modal
+    setManualTitle('')
+    setManualPrice('')
+    setManualDesc('')
+    setManualImage('')
+    setShowManualModal(false)
   }
 
-  const resetColor = (key) => setColor(key, '')
-  const resetTheme = () => {
-    const fresh = defaultOverrides()
-    patchOverrides(fresh)
-    pushHistory(fresh)
-  }
-
-  // Preview page switcher
+  // ── Step 4: Theme Controls & Live Preview ────────────
   const [previewPage, setPreviewPage] = useState('home')
 
-  // ── Launch ───────────────────────────────────────────
+  const THEME_PRESETS = {
+    emerald:  { primary: '#064E3B', primaryText: '#F8E7C9', bg: '#F8E7C9', surface: '#FFF9EC', text: '#4B5F57', heading: '#064E3B', price: '#064E3B' },
+    midnight: { primary: '#0D9488', primaryText: '#FFFFFF', bg: '#0F172A', surface: '#1E293B', text: '#94A3B8', heading: '#F8FAFC', price: '#38BDF8' },
+    rose:     { primary: '#FB7185', primaryText: '#FFFFFF', bg: '#18181B', surface: '#27272A', text: '#FDA4AF', heading: '#FFF1F2', price: '#F43F5E' },
+    minimal:  { primary: '#111827', primaryText: '#FFFFFF', bg: '#FFFFFF', surface: '#F9FAFB', text: '#374151', heading: '#111827', price: '#111827' },
+    amber:    { primary: '#F59E0B', primaryText: '#FFFFFF', bg: '#FAF5EF', surface: '#FFFFFF', text: '#57534E', heading: '#292524', price: '#EA580C' },
+    ocean:    { primary: '#0284C7', primaryText: '#FFFFFF', bg: '#F0F9FF', surface: '#FFFFFF', text: '#334155', heading: '#0C4A6E', price: '#0284C7' },
+  }
+
+  const currentThemePreset = THEME_PRESETS[wizardData.theme_id] || THEME_PRESETS.emerald
+  const ov = wizardData.theme_overrides?.colors || {}
+
+  const setColor = (key, val) => {
+    patchOverrides({
+      colors: { ...wizardData.theme_overrides.colors, [key]: val }
+    })
+  }
+
+  const resetTheme = () => {
+    patchOverrides(defaultOverrides())
+    toast.info('Theme Reset', 'Reset to theme defaults.')
+  }
+
+  // ── Step 5: Launch Store ──────────────────────────────
   const [isLaunched, setIsLaunched] = useState(false)
   const handleLaunchStore = () => {
     updateStore({
-      name: wizardData.name,
-      slug: wizardData.slug,
+      name: wizardData.name || 'StoreKraft Store',
+      slug: wizardData.slug || 'storekraft-store',
       tagline: wizardData.tagline,
       business_type: wizardData.business_type,
       contact_email: wizardData.contact_email,
@@ -417,36 +495,38 @@ export function WizardPage() {
       theme_overrides: wizardData.theme_overrides
     })
     setIsLaunched(true)
-    localStorage.removeItem('sc_wizard_draft')
+    localStorage.removeItem('sk_wizard_draft')
     try {
       confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 } })
     } catch {}
   }
 
-  const STEPS = ['Make your own', 'Categories', 'Products', 'Theme', 'Launch']
+  const STEPS = ['Brand Discovery', 'Categories', 'Catalog', 'Theme & Mobile', 'Launch']
 
-  // ── Current theme's base CSS vars for preview ────────
-  const themeColors = {
-    minimal:  { primary: '#18181b', bg: '#ffffff' },
-    vibrant:  { primary: '#d946ef', bg: '#fdf4ff' },
-    elegant:  { primary: '#7c3aed', bg: '#f9f6f0' },
-    midnight: { primary: '#14b8a6', bg: '#090d16' },
+  // Proceed handler for Step 1
+  const handleStep1Next = () => {
+    if (!wizardData.name.trim()) {
+      toast.warning('Store Name Required', 'Please enter your Store Name or use the AI generator.')
+      return
+    }
+    if (!wizardData.slug.trim()) {
+      patchWizard({ slug: wizardData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') })
+    }
+    setCurrentStep(2)
   }
-  const base = themeColors[wizardData.theme_id] || themeColors.minimal
-  const ov = wizardData.theme_overrides?.colors || {}
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--sc-champagne)' }}>
 
-      {/* ── Sticky header with progress ──────────────────── */}
+      {/* ── Sticky Header ─────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-champagne-card/90 backdrop-blur-md border-b border-champagne-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-brand text-champagne flex items-center justify-center font-black text-sm">
-              SC
+              SK
             </div>
             <div>
-              <h1 className="font-poppins text-sm font-bold text-brand leading-tight">Storecraft Wizard</h1>
+              <h1 className="font-poppins text-sm font-bold text-brand leading-tight">StoreKraft Wizard</h1>
               <p className="text-[11px] text-[var(--sc-muted)]">
                 Step {currentStep} of 5 — {STEPS[currentStep - 1]}
               </p>
@@ -461,7 +541,7 @@ export function WizardPage() {
                 title={label}
                 className={cn(
                   'h-2 sm:h-2.5 rounded-full transition-all duration-300',
-                  i + 1 < currentStep  ? 'bg-brand w-8 sm:w-10' :
+                  i + 1 < currentStep   ? 'bg-brand w-8 sm:w-10' :
                   i + 1 === currentStep ? 'bg-brand/60 w-8 sm:w-10' :
                                           'bg-champagne-border w-5 sm:w-7'
                 )}
@@ -471,7 +551,7 @@ export function WizardPage() {
         </div>
       </header>
 
-      {/* ── Main body ────────────────────────────────────── */}
+      {/* ── Main Body ─────────────────────────────────────── */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8">
 
         {/* SUCCESS SCREEN */}
@@ -483,7 +563,7 @@ export function WizardPage() {
             <div className="space-y-2">
               <h2 className="font-poppins font-black text-3xl text-brand">Your store is live!</h2>
               <p className="text-sm text-[var(--sc-muted)]">
-                <span className="font-semibold text-brand">{wizardData.name}</span> is now published and accepting orders.
+                <span className="font-semibold text-brand">{wizardData.name}</span> is published and accepting orders.
               </p>
             </div>
             <div className="p-4 clay-card space-y-3">
@@ -493,7 +573,7 @@ export function WizardPage() {
                   {window.location.origin}/s/{wizardData.slug}
                 </code>
                 <button
-                  onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/s/${wizardData.slug}`); toast.success('Copied!', '') }}
+                  onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/s/${wizardData.slug}`); toast.success('Copied URL', '') }}
                   className="p-1.5 rounded-lg text-[var(--sc-muted)] hover:text-brand"
                   aria-label="Copy store URL"
                 >
@@ -517,269 +597,358 @@ export function WizardPage() {
         ) : (
           <div className="space-y-6">
 
-            {/* ════════════════════════════════
-                STEP 1: Make your own (AI)
-                ════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════════
+                STEP 1: 2 VERTICAL CARDS (AI Chat & Manual Details)
+                ══════════════════════════════════════════════════ */}
             {currentStep === 1 && (
-              <div className="space-y-6 max-w-2xl mx-auto">
+              <div className="space-y-6">
+                <div className="text-center max-w-xl mx-auto space-y-1">
+                  <h2 className="font-poppins font-bold text-2xl text-brand">Setup Your Store</h2>
+                  <p className="text-xs text-[var(--sc-muted)]">
+                    Use our intelligent AI architect on the left or fill in your store credentials manually on the right. Both update in real time.
+                  </p>
+                </div>
 
-                {discoveryPhase === 'input' && (
-                  <Card className="p-6 sm:p-8 space-y-5">
-                    <div className="space-y-1">
-                      <h2 className="font-poppins font-bold text-xl text-brand">What kind of store do you want to create?</h2>
-                      <p className="text-sm text-[var(--sc-muted)]">
-                        One line is all it takes. We'll ask a few quick questions, then draft everything for you.
-                      </p>
-                    </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
 
-                    <textarea
-                      value={aiPrompt}
-                      onChange={e => setAiPrompt(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleStartDiscovery() }}
-                      placeholder="e.g. I sell handmade ceramic mugs and soy candles for home décor lovers"
-                      rows={3}
-                      className="clay-input w-full px-4 py-3 text-sm resize-none"
-                      aria-label="Describe your business"
-                    />
+                  {/* ── CARD 1 (LEFT): AI Store Discovery & Chat Box ── */}
+                  <Card className="p-6 flex flex-col justify-between space-y-5">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-champagne-border pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-9 w-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center">
+                            <Bot className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-poppins font-bold text-base text-brand">
+                              What should we build today?
+                            </h3>
+                            <p className="text-xs text-[var(--sc-muted)]">
+                              StoreKraft AI Brand & Catalog Architect
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="flex items-center justify-between gap-4">
-                      <button
-                        type="button"
-                        onClick={() => { setDiscoveryPhase('done'); setCurrentStep(1) }}
-                        className="text-xs text-[var(--sc-muted)] hover:text-brand underline-offset-2 hover:underline"
-                      >
-                        Skip — I'll fill it in myself
-                      </button>
-                      <Button
-                        onClick={handleStartDiscovery}
-                        isLoading={isAiLoading}
-                        disabled={!aiPrompt.trim()}
-                      >
-                        <Sparkles className="h-4 w-4 mr-1.5" />
-                        Let's go
-                      </Button>
-                    </div>
-                  </Card>
-                )}
-
-                {discoveryPhase === 'questions' && (
-                  <Card className="p-6 sm:p-8 space-y-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-mono text-[var(--sc-muted)]">
-                          Question {followupIndex + 1} of {FOLLOWUP_QUESTIONS.length}
+                      {/* Clickable Quick Suggestions */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--sc-muted)] block">
+                          Clickable Suggestions:
                         </span>
-                        <h2 className="font-poppins font-bold text-lg text-brand mt-1">
-                          {FOLLOWUP_QUESTIONS[followupIndex].question}
-                        </h2>
+                        <div className="flex flex-wrap gap-1.5">
+                          {QUICK_SUGGESTIONS.map(sug => (
+                            <button
+                              key={sug}
+                              type="button"
+                              onClick={() => {
+                                setAiPrompt(sug)
+                                handleAnalyzePrompt(sug)
+                              }}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-champagne-card border border-champagne-border text-[var(--sc-ink)] hover:border-brand hover:bg-brand/10 transition-colors text-left"
+                            >
+                              {sug}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <button
-                        onClick={() => { setDiscoveryPhase('done') }}
-                        className="text-xs text-[var(--sc-muted)] hover:text-brand underline-offset-2 hover:underline shrink-0"
-                      >
-                        Skip questions
-                      </button>
-                    </div>
 
-                    {/* Progress dots */}
-                    <div className="flex gap-1.5">
-                      {FOLLOWUP_QUESTIONS.map((_, i) => (
-                        <div key={i} className={cn('h-1.5 flex-1 rounded-full transition-all', i <= followupIndex ? 'bg-brand' : 'bg-champagne-border')} />
-                      ))}
-                    </div>
+                      {/* Conversational Message Thread */}
+                      <div className="p-3.5 rounded-xl bg-champagne-card/60 border border-champagne-border max-h-48 overflow-y-auto space-y-2.5 text-xs">
+                        {chatMessages.map((msg, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              'p-2.5 rounded-xl leading-relaxed',
+                              msg.sender === 'ai'
+                                ? 'bg-white border border-champagne-border text-[var(--sc-ink)] shadow-2xs'
+                                : 'bg-brand text-champagne ml-4'
+                            )}
+                          >
+                            <span className="font-bold text-[10px] uppercase block mb-1 opacity-75">
+                              {msg.sender === 'ai' ? 'StoreKraft AI' : 'You'}
+                            </span>
+                            {msg.text}
+                          </div>
+                        ))}
+                        {isAiLoading && (
+                          <div className="p-2.5 rounded-xl bg-white border border-champagne-border text-brand text-xs font-medium animate-pulse">
+                            Analyzing concepts and synthesizing tailored store profile…
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Quick-reply chips */}
-                    <div className="flex flex-wrap gap-2">
-                      {FOLLOWUP_QUESTIONS[followupIndex].chips.map(chip => (
-                        <button
-                          key={chip}
-                          type="button"
-                          onClick={() => handleChipAnswer(FOLLOWUP_QUESTIONS[followupIndex].id, chip)}
-                          className="px-3.5 py-2 rounded-xl text-xs font-semibold border-2 border-champagne-border bg-champagne-card text-[var(--sc-ink)] hover:border-brand hover:bg-brand hover:text-champagne transition-all min-h-[44px]"
+                      {/* Chat Input & Submit */}
+                      <div className="space-y-2">
+                        <textarea
+                          value={aiPrompt}
+                          onChange={e => setAiPrompt(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAnalyzePrompt() } }}
+                          placeholder="e.g. Handmade minimalist ceramic tableware and hand-poured soy candles"
+                          rows={2}
+                          className="clay-input w-full px-3.5 py-2.5 text-xs resize-none"
+                          aria-label="Describe your store"
+                        />
+                        <Button
+                          onClick={() => handleAnalyzePrompt()}
+                          isLoading={isAiLoading}
+                          className="w-full font-bold text-xs"
+                          disabled={!aiPrompt.trim()}
                         >
-                          {chip}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Free-text option */}
-                    <div className="flex gap-2 pt-2 border-t border-champagne-border">
-                      <input
-                        type="text"
-                        value={freeTextAnswer}
-                        onChange={e => setFreeTextAnswer(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleFreeTextNext() }}
-                        placeholder="Or type your own answer…"
-                        className="clay-input flex-1 px-3.5 py-2 text-sm min-h-[44px]"
-                        aria-label="Custom answer"
-                      />
-                      <Button size="sm" onClick={handleFreeTextNext} disabled={!freeTextAnswer.trim()}>
-                        Next <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                      </Button>
-                    </div>
-                  </Card>
-                )}
-
-                {/* done state → show and edit the pre-filled form */}
-                {(discoveryPhase === 'done' || discoveryPhase === 'input') && discoveryPhase !== 'questions' && (
-                  <Card className="p-6 space-y-4">
-                    {discoveryPhase === 'done' && (
-                      <div className="p-3 rounded-xl bg-brand/8 border border-brand/20 text-xs text-brand font-medium flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 shrink-0" />
-                        AI pre-filled your store. Review and edit anything below.
+                          <Sparkles className="h-4 w-4 mr-1.5" />
+                          Analyze & Generate Brand
+                        </Button>
                       </div>
-                    )}
-
-                    <h2 className="font-poppins font-bold text-base text-brand">Store Information</h2>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input
-                        label="Store Name"
-                        required
-                        value={wizardData.name}
-                        onChange={e => patchWizard({ name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-') })}
-                      />
-                      <Input
-                        label="Store Slug (URL)"
-                        required
-                        value={wizardData.slug}
-                        onChange={e => patchWizard({ slug: e.target.value })}
-                        helperText={`Live URL: /s/${wizardData.slug}`}
-                      />
                     </div>
 
-                    <Input
-                      label="Store Tagline"
-                      value={wizardData.tagline}
-                      onChange={e => patchWizard({ tagline: e.target.value })}
-                    />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input label="Contact Email" type="email" value={wizardData.contact_email} onChange={e => patchWizard({ contact_email: e.target.value })} />
-                      <Input label="Support Phone"               value={wizardData.phone}         onChange={e => patchWizard({ phone: e.target.value })} />
+                    {/* Logo Upload inside Left Card */}
+                    <div className="pt-3 border-t border-champagne-border">
+                      <ImageUploadControl
+                        label="Store Logo (Optional)"
+                        value={wizardData.logo_url}
+                        onChange={url => patchWizard({ logo_url: url })}
+                      />
                     </div>
-
-                    <Input label="Physical Address" value={wizardData.address} onChange={e => patchWizard({ address: e.target.value })} />
-
-                    {/* Logo upload */}
-                    <ImageUploadControl
-                      label="Business Logo"
-                      value={wizardData.logo_url}
-                      onChange={url => patchWizard({ logo_url: url })}
-                    />
                   </Card>
-                )}
+
+                  {/* ── CARD 2 (RIGHT): Manual Information Filling ── */}
+                  <Card className="p-6 flex flex-col justify-between space-y-5">
+                    <div className="space-y-4">
+                      <div className="border-b border-champagne-border pb-3">
+                        <h3 className="font-poppins font-bold text-base text-brand">
+                          Manual Store Details
+                        </h3>
+                        <p className="text-xs text-[var(--sc-muted)]">
+                          Configure or refine credentials drafted by the AI
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Input
+                          label="Store Name *"
+                          required
+                          placeholder="e.g. Terra Ceramic Studio"
+                          value={wizardData.name}
+                          onChange={e => {
+                            const val = e.target.value
+                            patchWizard({
+                              name: val,
+                              slug: val.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+                            })
+                          }}
+                        />
+
+                        <Input
+                          label="Store URL Slug *"
+                          required
+                          placeholder="e.g. terra-ceramic-studio"
+                          value={wizardData.slug}
+                          onChange={e => patchWizard({ slug: e.target.value })}
+                          helperText={`Public URL: /s/${wizardData.slug || 'your-store'}`}
+                        />
+
+                        <Input
+                          label="Store Tagline"
+                          placeholder="e.g. Handcrafted objects made to endure."
+                          value={wizardData.tagline}
+                          onChange={e => patchWizard({ tagline: e.target.value })}
+                        />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <Input
+                            label="Contact Email"
+                            type="email"
+                            placeholder="hello@yourstore.com"
+                            value={wizardData.contact_email}
+                            onChange={e => patchWizard({ contact_email: e.target.value })}
+                          />
+                          <Input
+                            label="Support Phone"
+                            placeholder="+91 98765 43210"
+                            value={wizardData.phone}
+                            onChange={e => patchWizard({ phone: e.target.value })}
+                          />
+                        </div>
+
+                        <Input
+                          label="Physical Address"
+                          placeholder="Studio location or city"
+                          value={wizardData.address}
+                          onChange={e => patchWizard({ address: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Logo Upload inside Right Card */}
+                    <div className="pt-3 border-t border-champagne-border">
+                      <ImageUploadControl
+                        label="Store Logo (Optional)"
+                        value={wizardData.logo_url}
+                        onChange={url => patchWizard({ logo_url: url })}
+                      />
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Primary Proceed CTA for Step 1 */}
+                <div className="flex justify-end pt-2">
+                  <Button size="lg" onClick={handleStep1Next} className="font-bold text-sm px-8">
+                    Proceed to Categories <ArrowRight className="h-4 w-4 ml-1.5" />
+                  </Button>
+                </div>
               </div>
             )}
 
-            {/* ════════════════════════════════
-                STEP 2: Categories
-                ════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════════
+                STEP 2: CATEGORIES (Custom Tag Adds to Default Tags)
+                ══════════════════════════════════════════════════ */}
             {currentStep === 2 && (
               <div className="space-y-6 max-w-2xl mx-auto">
                 <Card className="p-6 space-y-5">
                   <div>
-                    <h2 className="font-poppins font-bold text-base text-brand">Select Store Categories</h2>
-                    <p className="text-xs text-[var(--sc-muted)] mt-1">Pick relevant categories or add your own.</p>
+                    <h2 className="font-poppins font-bold text-base text-brand">Store Categories</h2>
+                    <p className="text-xs text-[var(--sc-muted)] mt-1">
+                      Choose which categories organize your catalog. Adding a custom category automatically includes it in the default tags list.
+                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-2.5">
-                    {PREDEFINED_CATEGORIES.map(cat => {
+
+                  {/* Available Categories list (NO EMOJIS) */}
+                  <div className="flex flex-wrap gap-2">
+                    {availableCategories.map(cat => {
                       const isSelected = wizardData.categories.includes(cat.name)
                       return (
                         <button
-                          key={cat.id}
+                          key={cat.id || cat.name}
                           type="button"
                           onClick={() => toggleCategory(cat.name)}
                           className={cn(
-                            'px-3.5 py-2 rounded-xl text-xs font-semibold border-2 transition-all flex items-center gap-1.5 min-h-[44px]',
+                            'px-3.5 py-2 rounded-xl text-xs font-semibold border-2 transition-all flex items-center gap-1.5 min-h-[40px]',
                             isSelected
                               ? 'bg-brand text-champagne border-brand shadow-clay-btn'
                               : 'bg-champagne-card text-[var(--sc-ink)] border-champagne-border hover:border-brand/40'
                           )}
                         >
-                          <span>{cat.emoji}</span>
                           <span>{cat.name}</span>
                           {isSelected && <Check className="h-3.5 w-3.5 ml-1" />}
                         </button>
                       )
                     })}
                   </div>
+
+                  {/* Add Custom Category Input */}
                   <div className="pt-3 border-t border-champagne-border flex gap-2">
                     <input
                       type="text"
-                      value={customCat}
-                      onChange={e => setCustomCat(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && customCat.trim()) { toggleCategory(customCat.trim()); setCustomCat('') } }}
-                      placeholder="Add custom category (e.g. Eco Crafts)"
-                      className="clay-input flex-1 px-3.5 py-2 text-xs min-h-[44px]"
+                      value={customCatInput}
+                      onChange={e => setCustomCatInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleAddCustomCategory() }}
+                      placeholder="Add custom category (e.g. Sustainable Goods)"
+                      className="clay-input flex-1 px-3.5 py-2 text-xs min-h-[42px]"
                       aria-label="Custom category name"
                     />
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => { if (customCat.trim()) { toggleCategory(customCat.trim()); setCustomCat('') } }}
+                      onClick={handleAddCustomCategory}
                     >
-                      + Add
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Add Category
                     </Button>
                   </div>
                 </Card>
               </div>
             )}
 
-            {/* ════════════════════════════════
-                STEP 3: Products
-                ════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════════
+                STEP 3: CATALOG (Demo, Working CSV, Manual Cataloguing)
+                ══════════════════════════════════════════════════ */}
             {currentStep === 3 && (
               <div className="space-y-6 max-w-3xl mx-auto">
                 <Card className="p-6 space-y-6">
                   <div>
                     <h2 className="font-poppins font-bold text-base text-brand">Product Catalog Setup</h2>
-                    <p className="text-xs text-[var(--sc-muted)] mt-1">Seed with demo products or upload your CSV catalog.</p>
+                    <p className="text-xs text-[var(--sc-muted)] mt-1">
+                      Seed with ready-made demo products, upload your CSV sheet, or manually catalogue products one by one.
+                    </p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Option A */}
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    {/* Option A: Seed Demo */}
                     <div className="clay-card p-5 space-y-3 flex flex-col justify-between">
                       <div>
-                        <Badge variant="indigo" size="sm" className="mb-2">Recommended</Badge>
+                        <Badge variant="indigo" size="sm" className="mb-2">Quick Start</Badge>
                         <h3 className="text-sm font-bold text-brand">Instant Demo Products</h3>
                         <p className="text-xs text-[var(--sc-muted)] mt-1">
                           Seed 8 realistic products with photos, descriptions and INR pricing.
                         </p>
                       </div>
-                      <Button onClick={handleImportDummy} isLoading={isImporting} className="w-full">
-                        ⚡ Seed Catalog ({wizardData.importedProductsCount || 8} items)
+                      <Button onClick={handleImportDummy} isLoading={isImporting} className="w-full text-xs">
+                        Seed Catalog ({wizardData.importedProductsCount || 8} items)
                       </Button>
                     </div>
-                    {/* Option B */}
+
+                    {/* Option B: Working CSV & Excel Upload */}
                     <div className="clay-card p-5 space-y-3 flex flex-col justify-between">
                       <div>
-                        <Badge variant="default" size="sm" className="mb-2">Bulk Upload</Badge>
-                        <h3 className="text-sm font-bold text-brand">Upload CSV / Excel Sheet</h3>
+                        <Badge variant="default" size="sm" className="mb-2">Bulk Import</Badge>
+                        <h3 className="text-sm font-bold text-brand">Upload CSV / Sheet</h3>
                         <p className="text-xs text-[var(--sc-muted)] mt-1">
-                          Auto column mapping with row-level error reporting.
+                          Auto-parses title, price, stock & category with error diagnostics.
                         </p>
                       </div>
-                      <Button onClick={handleSimulateCsvUpload} variant="secondary" className="w-full">
+                      <input
+                        type="file"
+                        ref={csvInputRef}
+                        accept=".csv, .tsv, .txt"
+                        className="hidden"
+                        onChange={handleCsvFileSelected}
+                      />
+                      <Button
+                        onClick={() => csvInputRef.current?.click()}
+                        variant="secondary"
+                        className="w-full text-xs"
+                      >
                         <FileSpreadsheet className="h-4 w-4 mr-1.5 text-brand" />
-                        Upload & Validate CSV
+                        Select CSV File
+                      </Button>
+                    </div>
+
+                    {/* Option C: Manual Cataloguing */}
+                    <div className="clay-card p-5 space-y-3 flex flex-col justify-between">
+                      <div>
+                        <Badge variant="success" size="sm" className="mb-2">Custom Item</Badge>
+                        <h3 className="text-sm font-bold text-brand">Manual Cataloguing</h3>
+                        <p className="text-xs text-[var(--sc-muted)] mt-1">
+                          Add custom product image, INR price, and description directly.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => setShowManualModal(true)}
+                        variant="secondary"
+                        className="w-full text-xs"
+                      >
+                        <Plus className="h-4 w-4 mr-1.5 text-brand" />
+                        Manual Cataloguing
                       </Button>
                     </div>
                   </div>
 
-                  {csvPreviewRows && (
-                    <div className="space-y-3 pt-3 border-t border-champagne-border">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-brand">{csvFile?.name}</span>
-                        <span className="text-[var(--sc-muted)]">✓ 2 valid · ⚠ 2 fixable</span>
+                  {/* CSV Diagnostic Output if loaded */}
+                  {csvStats && (
+                    <div className="space-y-3 pt-3 border-t border-champagne-border text-xs">
+                      <div className="flex items-center justify-between font-semibold">
+                        <span className="text-brand">{csvFileName}</span>
+                        <span className="text-[var(--sc-muted)]">
+                          {csvStats.valid} valid imported · {csvStats.errors} flagged
+                        </span>
                       </div>
                       {csvErrors.length > 0 && (
-                        <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs space-y-1">
-                          <p className="font-bold text-orange-900 flex items-center gap-1.5">
-                            <AlertTriangle className="h-3.5 w-3.5 text-orange-600" /> Row-Level Errors:
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs space-y-1">
+                          <p className="font-bold text-amber-900 flex items-center gap-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600" /> Row-Level Flags:
                           </p>
                           {csvErrors.map((err, i) => (
-                            <p key={i} className="text-orange-800">
-                              • Row {err.row}: {err.field} — {err.problem}. Fix: {err.fix}.
+                            <p key={i} className="text-amber-800">
+                              • Row {err.row}: {err.field} — {err.problem}. Action: {err.fix}.
                             </p>
                           ))}
                         </div>
@@ -787,113 +956,178 @@ export function WizardPage() {
                     </div>
                   )}
                 </Card>
+
+                {/* Manual Cataloguing Modal */}
+                {showManualModal && (
+                  <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="clay-card max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+                      <div className="flex items-center justify-between border-b border-champagne-border pb-3">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-5 w-5 text-brand" />
+                          <h3 className="font-poppins font-bold text-base text-brand">Manual Cataloguing</h3>
+                        </div>
+                        <button
+                          onClick={() => setShowManualModal(false)}
+                          className="text-[var(--sc-muted)] hover:text-brand text-xs font-bold"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleSaveManualProduct} className="space-y-3">
+                        <Input
+                          label="Product Name *"
+                          required
+                          value={manualTitle}
+                          onChange={e => setManualTitle(e.target.value)}
+                          placeholder="e.g. Handcrafted Ceramic Mug"
+                        />
+
+                        {/* 1. Product Image */}
+                        <ImageUploadControl
+                          label="1. Product Image"
+                          value={manualImage}
+                          onChange={setManualImage}
+                        />
+
+                        {/* 2. Price */}
+                        <Input
+                          label="2. Price (INR ₹) *"
+                          type="number"
+                          required
+                          value={manualPrice}
+                          onChange={e => setManualPrice(e.target.value)}
+                          placeholder="e.g. 1299"
+                        />
+
+                        {/* 3. Description */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-[var(--sc-ink)] uppercase tracking-wide">
+                            3. Product Description
+                          </label>
+                          <textarea
+                            value={manualDesc}
+                            onChange={e => setManualDesc(e.target.value)}
+                            rows={3}
+                            placeholder="Crafted with care, premium materials, and durable finishes."
+                            className="clay-input w-full px-3 py-2 text-xs resize-none"
+                          />
+                        </div>
+
+                        <div className="flex gap-2 justify-end pt-3 border-t border-champagne-border">
+                          <Button type="button" variant="secondary" size="sm" onClick={() => setShowManualModal(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit" size="sm" className="font-bold">
+                            Save Product
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* ════════════════════════════════
-                STEP 4: Theme Customiser
-                ════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════════
+                STEP 4: THEME & LIVE MOBILE PREVIEW (Aligned Layout)
+                ══════════════════════════════════════════════════ */}
             {currentStep === 4 && (
-              <div className="space-y-4">
-                {/* Mobile: preview on top, collapsible */}
+              <div className="space-y-6">
+                <div className="text-center max-w-xl mx-auto space-y-1">
+                  <h2 className="font-poppins font-bold text-2xl text-brand">Brand Customiser & Layout</h2>
+                  <p className="text-xs text-[var(--sc-muted)]">
+                    Pick a premium multi-color theme, position mobile buttons, and fine-tune colors with instant live mobile sync.
+                  </p>
+                </div>
+
                 <div className="flex flex-col lg:flex-row gap-6 items-start">
 
-                  {/* ── Controls panel ── */}
-                  <div className="w-full lg:w-[420px] space-y-4 flex-shrink-0">
+                  {/* Left Controls Column */}
+                  <div className="w-full lg:w-[460px] space-y-4 flex-shrink-0">
 
-                    {/* Base theme selector */}
+                    {/* Multi-Color Theme Presets */}
                     <Card className="p-5 space-y-3">
                       <div className="flex items-center justify-between">
-                        <h2 className="font-poppins font-bold text-base text-brand">Theme & Customise</h2>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={undo}
-                            disabled={historyIdx === 0}
-                            className="p-1.5 rounded-lg text-[var(--sc-muted)] hover:text-brand disabled:opacity-30"
-                            title="Undo"
-                          >
-                            <ArrowLeft className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={redo}
-                            disabled={historyIdx === history.length - 1}
-                            className="p-1.5 rounded-lg text-[var(--sc-muted)] hover:text-brand disabled:opacity-30"
-                            title="Redo"
-                          >
-                            <ArrowRight className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={resetTheme}
-                            className="p-1.5 rounded-lg text-[var(--sc-muted)] hover:text-brand"
-                            title="Reset all to theme defaults"
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                          </button>
-                        </div>
+                        <h3 className="font-poppins font-bold text-sm text-brand">
+                          Premium Multi-Colour Themes
+                        </h3>
+                        <button
+                          onClick={resetTheme}
+                          className="p-1.5 rounded-lg text-[var(--sc-muted)] hover:text-brand"
+                          title="Reset to theme defaults"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {THEMES_METADATA.map(theme => {
                           const isSelected = wizardData.theme_id === theme.id
                           return (
                             <button
                               key={theme.id}
                               type="button"
-                              onClick={() => { patchWizard({ theme_id: theme.id }); resetTheme() }}
+                              onClick={() => {
+                                patchWizard({ theme_id: theme.id })
+                                resetTheme()
+                              }}
                               className={cn(
-                                'p-3 rounded-xl border-2 text-left transition-all min-h-[44px]',
-                                isSelected ? 'border-brand bg-brand/8' : 'border-champagne-border bg-champagne-card hover:border-brand/30'
+                                'p-3 rounded-xl border-2 text-left transition-all min-h-[48px]',
+                                isSelected ? 'border-brand bg-brand/10 shadow-sm' : 'border-champagne-border bg-champagne-card hover:border-brand/30'
                               )}
                             >
-                              <div className="flex items-center gap-2">
-                                <div className="h-4 w-4 rounded-full shrink-0" style={{ background: themeColors[theme.id]?.primary }} />
-                                <span className={cn('text-xs font-semibold', isSelected ? 'text-brand' : 'text-[var(--sc-ink)]')}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="flex -space-x-1">
+                                  <div className="h-3.5 w-3.5 rounded-full border border-white" style={{ background: theme.accentColor }} />
+                                  <div className="h-3.5 w-3.5 rounded-full border border-white" style={{ background: theme.secondaryColor || '#F8E7C9' }} />
+                                  {theme.accentHighlight && (
+                                    <div className="h-3.5 w-3.5 rounded-full border border-white" style={{ background: theme.accentHighlight }} />
+                                  )}
+                                </div>
+                                <span className={cn('text-xs font-bold truncate', isSelected ? 'text-brand' : 'text-[var(--sc-ink)]')}>
                                   {theme.name}
                                 </span>
-                                {isSelected && <Check className="h-3.5 w-3.5 ml-auto text-brand" />}
+                                {isSelected && <Check className="h-3.5 w-3.5 ml-auto text-brand shrink-0" />}
                               </div>
+                              <p className="text-[10px] text-[var(--sc-muted)] leading-tight line-clamp-1">
+                                {theme.tagline}
+                              </p>
                             </button>
                           )
                         })}
                       </div>
                     </Card>
 
-                    {/* Colors */}
-                    <Card className="p-5 space-y-4">
-                      <h3 className="font-poppins font-semibold text-sm text-brand flex items-center gap-2">
-                        <Palette className="h-4 w-4" /> Colours
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <ColorControl label="Primary button"      value={ov.primary || base.primary}          onChange={v => setColor('primary', v)}          onReset={() => resetColor('primary')} />
-                        <ColorControl label="Button text"         value={ov.primaryText || '#ffffff'}         onChange={v => setColor('primaryText', v)}       onReset={() => resetColor('primaryText')} contrastWith={ov.primary || base.primary} />
-                        <ColorControl label="Page background"     value={ov.background || base.bg}           onChange={v => setColor('background', v)}        onReset={() => resetColor('background')} />
-                        <ColorControl label="Card surface"        value={ov.surface || '#ffffff'}            onChange={v => setColor('surface', v)}           onReset={() => resetColor('surface')} />
-                        <ColorControl label="Heading text"        value={ov.heading || '#09090b'}            onChange={v => setColor('heading', v)}           onReset={() => resetColor('heading')} contrastWith={ov.background || base.bg} />
-                        <ColorControl label="Body text"           value={ov.text || '#3f3f46'}               onChange={v => setColor('text', v)}              onReset={() => resetColor('text')} contrastWith={ov.background || base.bg} />
-                        <ColorControl label="Price / accent"      value={ov.price || ov.primary || base.primary} onChange={v => setColor('price', v)}         onReset={() => resetColor('price')} />
-                        <ColorControl label="Border"              value={ov.border || '#e4e4e7'}             onChange={v => setColor('border', v)}            onReset={() => resetColor('border')} />
-                      </div>
-                    </Card>
-
-                    {/* Button shape */}
+                    {/* Mobile Button Placement (Requested Feature) */}
                     <Card className="p-5 space-y-3">
-                      <h3 className="font-poppins font-semibold text-sm text-brand">Button Shape</h3>
-                      <div className="flex gap-2">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-poppins font-bold text-sm text-brand flex items-center gap-2">
+                          <Sliders className="h-4 w-4" /> Mobile CTA Button Placement
+                        </h3>
+                      </div>
+                      <p className="text-[11px] text-[var(--sc-muted)]">
+                        Move the primary shopping call-to-action anywhere on the phone interface.
+                      </p>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {[
-                          { key: 'square',  label: 'Square',  css: '0px' },
-                          { key: 'rounded', label: 'Rounded', css: '10px' },
-                          { key: 'pill',    label: 'Pill',    css: '999px' },
+                          { key: 'header',   label: 'Header' },
+                          { key: 'hero',     label: 'Hero' },
+                          { key: 'floating', label: 'Floating' },
+                          { key: 'footer',   label: 'Footer' },
                         ].map(({ key, label }) => {
-                          const isSelected = (wizardData.theme_overrides?.button?.radius || 'rounded') === key
+                          const isSelected = (wizardData.theme_overrides?.button?.position || 'hero') === key
                           return (
                             <button
                               key={key}
                               type="button"
-                              onClick={() => patchOverrides({ button: { ...wizardData.theme_overrides.button, radius: key } })}
+                              onClick={() => patchOverrides({
+                                button: { ...wizardData.theme_overrides.button, position: key }
+                              })}
                               className={cn(
-                                'flex-1 py-2 text-xs font-semibold border-2 transition-all min-h-[44px]',
-                                key === 'square'  ? 'rounded-sm' : key === 'pill' ? 'rounded-full' : 'rounded-xl',
-                                isSelected ? 'border-brand bg-brand text-champagne' : 'border-champagne-border text-[var(--sc-ink)] hover:border-brand/40'
+                                'py-2 px-2 text-xs font-semibold rounded-xl border-2 transition-all min-h-[40px]',
+                                isSelected ? 'border-brand bg-brand text-champagne' : 'border-champagne-border bg-champagne-card text-[var(--sc-ink)] hover:border-brand/40'
                               )}
                             >
                               {label}
@@ -903,62 +1137,107 @@ export function WizardPage() {
                       </div>
                     </Card>
 
-                    {/* Fonts */}
+                    {/* Button Shape */}
                     <Card className="p-5 space-y-3">
-                      <h3 className="font-poppins font-semibold text-sm text-brand">Fonts</h3>
+                      <h3 className="font-poppins font-bold text-sm text-brand">Button Geometry</h3>
+                      <div className="flex gap-2">
+                        {[
+                          { key: 'square',  label: 'Square' },
+                          { key: 'rounded', label: 'Rounded' },
+                          { key: 'pill',    label: 'Pill' },
+                        ].map(({ key, label }) => {
+                          const isSelected = (wizardData.theme_overrides?.button?.radius || 'rounded') === key
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => patchOverrides({
+                                button: { ...wizardData.theme_overrides.button, radius: key }
+                              })}
+                              className={cn(
+                                'flex-1 py-2 text-xs font-semibold border-2 transition-all min-h-[40px] rounded-xl',
+                                isSelected ? 'border-brand bg-brand text-champagne' : 'border-champagne-border bg-champagne-card text-[var(--sc-ink)] hover:border-brand/40'
+                              )}
+                            >
+                              {label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </Card>
+
+                    {/* Color Swatches */}
+                    <Card className="p-5 space-y-4">
+                      <h3 className="font-poppins font-bold text-sm text-brand flex items-center gap-2">
+                        <Palette className="h-4 w-4" /> Multi-Colour Customization
+                      </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-[var(--sc-ink)] uppercase tracking-wide">Heading</label>
+                        <ColorControl
+                          label="Primary / Button"
+                          value={ov.primary || currentThemePreset.primary}
+                          onChange={v => setColor('primary', v)}
+                          onReset={() => setColor('primary', '')}
+                        />
+                        <ColorControl
+                          label="Page Background"
+                          value={ov.background || currentThemePreset.bg}
+                          onChange={v => setColor('background', v)}
+                          onReset={() => setColor('background', '')}
+                        />
+                        <ColorControl
+                          label="Card Surface"
+                          value={ov.surface || currentThemePreset.surface}
+                          onChange={v => setColor('surface', v)}
+                          onReset={() => setColor('surface', '')}
+                        />
+                        <ColorControl
+                          label="Headings"
+                          value={ov.heading || currentThemePreset.heading}
+                          onChange={v => setColor('heading', v)}
+                          onReset={() => setColor('heading', '')}
+                        />
+                      </div>
+                    </Card>
+
+                    {/* Typography */}
+                    <Card className="p-5 space-y-3">
+                      <h3 className="font-poppins font-bold text-sm text-brand">Typography Pairing</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-[var(--sc-ink)] uppercase tracking-wide">Heading Font</label>
                           <select
                             value={wizardData.theme_overrides?.fonts?.heading || ''}
                             onChange={e => patchOverrides({ fonts: { ...wizardData.theme_overrides.fonts, heading: e.target.value } })}
-                            className="clay-input w-full px-3 py-2 text-sm min-h-[44px]"
-                            aria-label="Heading font"
+                            className="clay-input w-full px-3 py-2 text-xs min-h-[40px]"
                           >
-                            <option value="">Theme default</option>
+                            <option value="">Theme Default</option>
                             {HEADING_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                           </select>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-[var(--sc-ink)] uppercase tracking-wide">Body</label>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-[var(--sc-ink)] uppercase tracking-wide">Body Font</label>
                           <select
                             value={wizardData.theme_overrides?.fonts?.body || ''}
                             onChange={e => patchOverrides({ fonts: { ...wizardData.theme_overrides.fonts, body: e.target.value } })}
-                            className="clay-input w-full px-3 py-2 text-sm min-h-[44px]"
-                            aria-label="Body font"
+                            className="clay-input w-full px-3 py-2 text-xs min-h-[40px]"
                           >
-                            <option value="">Theme default</option>
+                            <option value="">Theme Default</option>
                             {BODY_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                           </select>
                         </div>
                       </div>
                     </Card>
-
-                    {/* Hero image upload */}
-                    <Card className="p-5 space-y-3">
-                      <h3 className="font-poppins font-semibold text-sm text-brand flex items-center gap-2">
-                        <Image className="h-4 w-4" /> Hero Image
-                      </h3>
-                      <ImageUploadControl
-                        label="Hero / Banner Image"
-                        value={wizardData.theme_overrides?.background?.heroImageUrl || ''}
-                        onChange={url => patchOverrides({
-                          background: { ...wizardData.theme_overrides.background, heroImageUrl: url }
-                        })}
-                      />
-                    </Card>
                   </div>
 
-                  {/* ── Live phone preview ── */}
-                  <div className="flex-1 flex flex-col items-center gap-3 sticky top-24">
-                    {/* Preview page switcher */}
+                  {/* Right Column: Live Phone Preview */}
+                  <div className="flex-1 flex flex-col items-center gap-3 sticky top-24 w-full">
                     <div className="flex gap-1 bg-champagne-card border border-champagne-border rounded-xl p-1">
                       {['home', 'product', 'cart'].map(p => (
                         <button
                           key={p}
                           onClick={() => setPreviewPage(p)}
                           className={cn(
-                            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize min-h-[36px]',
+                            'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize min-h-[36px]',
                             previewPage === p ? 'bg-brand text-champagne' : 'text-[var(--sc-muted)] hover:text-brand'
                           )}
                         >
@@ -966,7 +1245,11 @@ export function WizardPage() {
                         </button>
                       ))}
                     </div>
-                    <span className="text-xs font-bold text-[var(--sc-muted)] uppercase tracking-wider">Live Preview</span>
+
+                    <span className="text-[11px] font-bold text-[var(--sc-muted)] uppercase tracking-wider">
+                      Live Storefront Mobile Preview
+                    </span>
+
                     <LivePhonePreview
                       themeId={wizardData.theme_id}
                       storeName={wizardData.name}
@@ -976,31 +1259,36 @@ export function WizardPage() {
                       previewPage={previewPage}
                       logoUrl={wizardData.logo_url}
                     />
+
                     <p className="text-[10px] text-[var(--sc-muted)] text-center max-w-[280px]">
-                      Preview updates instantly. Changes persist to your live store.
+                      Changes to themes and button positions reflect immediately in the mobile viewport.
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ════════════════════════════════
-                STEP 5: Review & Launch
-                ════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════════
+                STEP 5: REVIEW & PUBLISH (No Emojis)
+                ══════════════════════════════════════════════════ */}
             {currentStep === 5 && (
               <div className="max-w-2xl mx-auto space-y-6">
                 <Card className="p-6 space-y-5">
                   <div>
-                    <h2 className="font-poppins font-bold text-base text-brand">Review & Launch</h2>
-                    <p className="text-xs text-[var(--sc-muted)] mt-1">Check everything before publishing your store.</p>
+                    <h2 className="font-poppins font-bold text-base text-brand">Review & Publish</h2>
+                    <p className="text-xs text-[var(--sc-muted)] mt-1">
+                      Confirm store specifications before generating your live production URL.
+                    </p>
                   </div>
+
                   <div className="divide-y divide-champagne-border text-xs">
                     {[
-                      ['Store Name', wizardData.name],
-                      ['Store URL', `/s/${wizardData.slug}`],
-                      ['Theme', wizardData.theme_id],
-                      ['Categories', wizardData.categories.join(', ') || 'None selected'],
-                      ['Products Ready', `${wizardData.importedProductsCount || 8} items`],
+                      ['Store Name', wizardData.name || 'StoreKraft Store'],
+                      ['Store URL', `/s/${wizardData.slug || 'storekraft-store'}`],
+                      ['Theme Aesthetic', wizardData.theme_id?.toUpperCase()],
+                      ['Button Placement', wizardData.theme_overrides?.button?.position || 'Hero'],
+                      ['Curated Categories', wizardData.categories.join(', ') || 'General'],
+                      ['Catalog Items', `${wizardData.importedProductsCount || 8} items ready`],
                     ].map(([label, val]) => (
                       <div key={label} className="py-2.5 flex justify-between">
                         <span className="text-[var(--sc-muted)]">{label}:</span>
@@ -1008,14 +1296,15 @@ export function WizardPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="p-3.5 rounded-xl bg-brand/8 border border-brand/20 text-xs text-brand">
-                    Clicking <strong>Launch Store Now</strong> publishes your live storefront link immediately.
+
+                  <div className="p-3.5 rounded-xl bg-brand/10 border border-brand/20 text-xs text-brand">
+                    Publishing activates your public URL and provisions your merchant administration portal.
                   </div>
                 </Card>
               </div>
             )}
 
-            {/* ── Sticky nav bar ── */}
+            {/* ── Sticky Navigation Bar ── */}
             <div className="sticky bottom-4 z-30 max-w-2xl mx-auto clay-card px-4 py-3 flex items-center justify-between">
               <Button
                 variant="secondary"
@@ -1029,7 +1318,10 @@ export function WizardPage() {
               {currentStep < 5 ? (
                 <Button
                   size="sm"
-                  onClick={() => setCurrentStep(p => Math.min(5, p + 1))}
+                  onClick={() => {
+                    if (currentStep === 1) handleStep1Next()
+                    else setCurrentStep(p => Math.min(5, p + 1))
+                  }}
                 >
                   Next <ArrowRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
@@ -1037,9 +1329,9 @@ export function WizardPage() {
                 <Button
                   size="sm"
                   onClick={handleLaunchStore}
-                  className="bg-brand"
+                  className="bg-brand font-bold"
                 >
-                  🚀 Launch Store Now
+                  Launch Store Now
                 </Button>
               )}
             </div>

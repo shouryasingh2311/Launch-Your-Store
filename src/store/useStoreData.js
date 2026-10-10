@@ -11,9 +11,9 @@ export const useStoreData = create(
       products: INITIAL_PRODUCTS,
       orders: INITIAL_ORDERS,
       team: [
-        { id: 'tm-1', name: 'Aarav Patel', email: 'owner@crafthaven.store', role: 'owner', added_at: '2026-03-01' },
-        { id: 'tm-2', name: 'Priya Nair', email: 'staff@crafthaven.store', role: 'staff', added_at: '2026-03-15' },
-        { id: 'tm-3', name: 'Vikram Seth', email: 'inventory@crafthaven.store', role: 'staff', added_at: '2026-03-20' }
+        { id: 'tm-1', name: 'Admin', email: 'admin@storekraft.com', role: 'owner', added_at: '2026-03-01' },
+        { id: 'tm-2', name: 'Store Staff', email: 'staff@storekraft.com', role: 'staff', added_at: '2026-03-15' },
+        { id: 'tm-3', name: 'Inventory Specialist', email: 'inventory@storekraft.com', role: 'staff', added_at: '2026-03-20' }
       ],
       notifications: [
         { id: 'notif-1', channel: 'SMS', message: 'Order ORD-1001 marked as Delivered', timestamp: '2026-03-31T16:45:00Z' },
@@ -108,7 +108,7 @@ export const useStoreData = create(
       },
 
       // Category actions
-      addCategory: (name, emoji = '🏷️') => {
+      addCategory: (name, emoji = '') => {
         const slug = name.toLowerCase().replace(/\s+/g, '-')
         const newCat = {
           id: `cat-${Date.now()}`,

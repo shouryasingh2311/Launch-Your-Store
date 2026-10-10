@@ -14,7 +14,7 @@ export function CategoryChips({ categories = [], selectedCategory, onSelectCateg
               : "bg-[var(--store-surface,#ffffff)] text-[var(--store-text,#0f172a)] border-[var(--store-border,#e2e8f0)] hover:bg-slate-100"
           )}
         >
-          ✨ All Products
+          All Products
         </button>
 
         {categories.map((cat) => {
@@ -30,7 +30,6 @@ export function CategoryChips({ categories = [], selectedCategory, onSelectCateg
                   : "bg-[var(--store-surface,#ffffff)] text-[var(--store-text,#0f172a)] border-[var(--store-border,#e2e8f0)] hover:bg-slate-100"
               )}
             >
-              <span>{cat.emoji || '🏷️'}</span>
               <span>{cat.name}</span>
             </button>
           )
